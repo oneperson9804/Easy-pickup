@@ -19,7 +19,7 @@ Flutter 3.47.8、Dart 3.13.7、Android SDK 36、NDK 28.2。
 | 迁移文件导入易取件 | 53 条导入与重复去重通过，10 个字段逐项一致 |
 | iOS Runner、PickupWidget 与 ShareExtension | macOS 构建通过，两个扩展的嵌入目录核对通过 |
 | iOS 模拟器核心流程 | iPhone 16e / iOS 18.5，真实启动、原生通道、SQLite 手动保存和三页导航测试 1 项通过，耗时 21 秒 |
-| CI 整轮结束状态 | 环境预缓存与任务收尾验证中 |
+| CI 整轮结束状态 | 通过；Android 检查与构建、iOS 集成测试及两个扩展检查均成功 |
 | Android 16 / 16KB 页面环境 | 实测 PAGE_SIZE=16384，安装启动、中文截图识别、图片码识别与相机预览通过；最终包覆盖安装保留记录与码夹 |
 
 核心测试覆盖短信样例、验证码隔离、纠正规则、自然排序、准确撤销、200 条跨日跨月批量操作、备份去重、连续分享、确认失败保护和提醒重试。
@@ -30,7 +30,7 @@ Android 16 设备检查还覆盖二维码图片解码、相机授权和预览、
 
 正式安装包中，三个 ABI 的签名与 ZIP 对齐检查通过；64 位原生库的 16KB ELF 与 RELRO 检查通过。
 
-iOS 核心流程证据来自提交 `593d9eb` 的 [CI 运行记录](https://github.com/oneperson9804/Easy-pickup/actions/runs/40121145714)。该次记录包含 `+1: (tearDownAll)`；整轮任务的退出阶段达到执行时限，结束状态另列于上表。
+iOS 核心流程证据来自提交 `83ab50c` 的 [CI 运行记录](https://github.com/oneperson9804/Easy-pickup/actions/runs/40123921920)。环境为 Intel macOS、Xcode 16.4、iPhone 16e / iOS 18.5；测试报告为 `00:31 +1: All tests passed!`，Widget 和分享扩展检查均成功。
 
 ## 设备与分发条件
 
