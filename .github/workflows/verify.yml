@@ -32,7 +32,12 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --no-pub
       - run: flutter test --reporter expanded
-      - run: flutter build apk --debug
+      - run: flutter build apk --debug --target-platform android-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-x64
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 1
   ios-simulator:
     runs-on: macos-15
     timeout-minutes: 45
@@ -46,7 +51,15 @@ jobs:
           git -C "$RUNNER_TEMP/flutter" checkout 737ba8f885dc774b53b442759999a312c9461e4e
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - run: flutter pub get
-      - run: flutter build ios --simulator --debug
+      - name: Build iOS simulator and extensions
+        run: flutter build ios --simulator --debug --verbose
+      - name: Inspect iOS dependency linkage after failure
+        if: failure()
+        run: |
+          cat ios/Runner.xcworkspace/contents.xcworkspacedata
+          cat ios/Flutter/Debug.xcconfig
+          find build/ios -type d -name Pods_Runner.framework -print || true
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Debug -sdk iphonesimulator -showBuildSettings 2>&1 | grep -E 'FRAMEWORK_SEARCH_PATHS|PODS_CONFIGURATION_BUILD_DIR|BUILT_PRODUCTS_DIR|error:' || true
       - name: Verify embedded real WidgetKit extension
         run: |
           test -d build/ios/iphonesimulator/Runner.app/PlugIns/PickupWidget.appex

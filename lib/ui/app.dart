@@ -66,12 +66,16 @@ class _HomeState extends State<_Home> with WidgetsBindingObserver {
     appBar: AppBar(
       title: Row(
         children: [
-          const Text(
-            '易取件',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
+          const Flexible(
+            child: Text(
+              '易取件',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -84,7 +88,16 @@ class _HomeState extends State<_Home> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(width: 8),
-          Text('Easy pickup', style: Theme.of(context).textTheme.bodySmall),
+          if (MediaQuery.sizeOf(context).width >= 420 &&
+              MediaQuery.textScalerOf(context).scale(1) <= 1.2)
+            Flexible(
+              child: Text(
+                'Easy pickup',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
         ],
       ),
       actions: [

@@ -398,7 +398,7 @@ Future<void> editSavedCode(
   final content = TextEditingController(text: existing?.value ?? value ?? '');
   var selectedFormat = existing?.format ?? format;
   final form = GlobalKey<FormState>();
-  final result = await showDialog<bool>(
+  final result = await showSettledDialog<bool>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(

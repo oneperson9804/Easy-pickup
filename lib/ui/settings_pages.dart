@@ -382,7 +382,7 @@ class RecognitionRulesPage extends StatelessWidget {
     );
     var kind = existing?.kind ?? 'address';
     final form = GlobalKey<FormState>();
-    final saved = await showDialog<bool>(
+    final saved = await showSettledDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(

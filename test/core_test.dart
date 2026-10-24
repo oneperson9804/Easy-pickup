@@ -148,10 +148,20 @@ void main() {
         throwsFormatException,
       );
       expect((await repository.load()).parcels, isEmpty);
-      final result = await app.importSnapshot(AppSnapshot(parcels: [parcel]));
+      final result = await app.importSnapshot(
+        AppSnapshot(
+          parcels: [parcel],
+          settings: const AppSettings(reminderEnabled: true),
+        ),
+      );
       expect(result.added, 1);
       expect(app.parcels.length, 1);
       expect(app.error, contains('备份已导入'));
+      expect(app.settings.reminderEnabled, false);
+      platform.failReminders = false;
+      await app.updateSettings(app.settings.copyWith(reminderEnabled: true));
+      expect(platform.reminderCalls, 2);
+      expect(app.settings.reminderEnabled, true);
     });
     test('撤销恢复准确已取时间，未被改为当前时间', () async {
       final parcel = Parcel(
@@ -265,6 +275,9 @@ void main() {
 class TestPlatformServices extends PlatformServices {
   final shares = <Map<String, dynamic>>[];
   bool failAckOnce = false, failReminders = false;
+  int reminderCalls = 0;
+  @override
+  Future<bool> requestNotifications() async => true;
   @override
   Future<Map<String, dynamic>?> consumeSharedImport() async =>
       shares.isEmpty ? null : shares.first;
@@ -281,6 +294,7 @@ class TestPlatformServices extends PlatformServices {
   Future<void> refreshWidgets() async {}
   @override
   Future<void> scheduleReminders(AppSettings settings) async {
+    reminderCalls++;
     if (failReminders) throw StateError('notification permission denied');
   }
 }

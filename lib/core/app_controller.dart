@@ -374,6 +374,10 @@ class AppController extends ChangeNotifier {
     try {
       await platform.scheduleReminders(snapshot.settings);
     } catch (exception) {
+      await _repository.putSettings(
+        snapshot.settings.copyWith(reminderEnabled: false),
+      );
+      await reload();
       error = '备份已导入；取件提醒未恢复，请检查通知权限后重新设置：$exception';
       notifyListeners();
     }

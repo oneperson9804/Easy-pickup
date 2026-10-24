@@ -47,6 +47,8 @@ bash scripts/build-android.sh
 
 请自行离线备份生成的签名配置。后续更新必须沿用同一签名；仓库、Issue 和工作流都不应包含签名密钥或密码。无密钥环境可构建调试包，release 不借用 debug 密钥冒充正式签名。
 
+如需自定义签名配置路径，设置 `EASY_PICKUP_SIGNING_ENV` 指向仓库外的环境文件，再运行构建脚本。
+
 iOS 需要 macOS 与 Xcode：
 
 ```sh

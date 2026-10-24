@@ -108,7 +108,7 @@ class DocumentPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '适用版本：易取件 1.0.0\n更新日期：2026年10月24日',
+          '适用版本：易取件 1.0.0\n更新日期：2026年10月25日',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         ..._sections(privacy).map(

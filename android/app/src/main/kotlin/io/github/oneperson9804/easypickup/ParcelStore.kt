@@ -69,6 +69,20 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
     /** 1 = added, 0 = duplicate, -1 = not a pickup message. */
     fun insertSms(address: String, sourceDate: Long, body: String, receivedAt: Long = sourceDate): Int {
         val parsed = parseSms(body) ?: return -1
+        val sourceKey = "sms:$address:$sourceDate:$body"
+        // Legacy exports lack the SMS sender. Link only one unambiguous migrated
+        // record, preserving its edited location and collected timestamp.
+        val migrated = readableDatabase.rawQuery(
+            "SELECT id FROM parcels WHERE source_key LIKE 'legacy:%' AND raw_text=? AND ABS(arrived_at - ?) <= 60000 LIMIT 2",
+            arrayOf(body, receivedAt.toString())
+        ).use { rows ->
+            if (rows.count == 1 && rows.moveToFirst()) rows.getString(0) else null
+        }
+        if (migrated != null) {
+            val linked = ContentValues().apply { put("source_key", sourceKey) }
+            writableDatabase.updateWithOnConflict("parcels", linked, "id=?", arrayOf(migrated), SQLiteDatabase.CONFLICT_IGNORE)
+            return 0
+        }
         val values = ContentValues().apply {
             put("id", UUID.randomUUID().toString())
             put("station", parsed.station)
@@ -77,7 +91,7 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
             put("raw_text", body)
             put("arrived_at", receivedAt)
             put("source", "sms")
-            put("source_key", "sms:$address:$sourceDate:$body")
+            put("source_key", sourceKey)
         }
         return if (writableDatabase.insertWithOnConflict("parcels", null, values, SQLiteDatabase.CONFLICT_IGNORE) == -1L) 0 else 1
     }

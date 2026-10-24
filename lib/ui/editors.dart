@@ -105,7 +105,7 @@ Future<void> importTextDialog(
   String source = 'paste',
 }) async {
   final text = TextEditingController(text: initial);
-  final value = await showDialog<String>(
+  final value = await showSettledDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(source == 'ocr' ? '检查识别文字' : '粘贴取件信息'),
@@ -162,7 +162,9 @@ Future<void> importTextDialog(
   if (value == null || !context.mounted) return;
   await runTask(context, () async {
     final result = await app.importText(value, source: source);
-    if (source == 'share' && (result.added > 0 || result.duplicates > 0)) {
+    if (source == 'share' &&
+        result.unrecognized == 0 &&
+        (result.added > 0 || result.duplicates > 0)) {
       await app.clearSharedText();
     }
     if (context.mounted) {
@@ -170,7 +172,7 @@ Future<void> importTextDialog(
         context,
         result.added == 0 && result.duplicates == 0
             ? '没有识别到取件信息，可选择手动填写。'
-            : '新增 ${result.added} 件 · 跳过重复 ${result.duplicates} 条',
+            : '新增 ${result.added} 件 · 跳过重复 ${result.duplicates} 条${result.unrecognized > 0 ? ' · ${result.unrecognized} 条未识别${source == 'share' ? '，分享草稿已保留' : '，可再次导入或手动填写'}' : ''}',
       );
     }
   });
@@ -188,7 +190,7 @@ Future<void> editParcel(
   final raw = TextEditingController(text: parcel?.rawText ?? '');
   final detail = TextEditingController(text: parcel?.detailAddress ?? '');
   var arrived = parcel?.arrivedAt ?? DateTime.now();
-  final saved = await showDialog<bool>(
+  final saved = await showSettledDialog<bool>(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(

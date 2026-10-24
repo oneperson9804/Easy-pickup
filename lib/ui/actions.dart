@@ -3,6 +3,22 @@ import 'package:flutter/material.dart';
 import '../core/app_controller.dart';
 import '../core/models.dart';
 
+/// Keep externally owned form controllers alive through the exit transition.
+Future<T?> showSettledDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+}) async {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final route = DialogRoute<T>(
+    context: context,
+    builder: builder,
+    themes: InheritedTheme.capture(from: context, to: navigator.context),
+  );
+  final result = await navigator.push<T>(route);
+  await route.completed;
+  return result;
+}
+
 void notice(BuildContext context, String message, {SnackBarAction? action}) {
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).hideCurrentSnackBar();

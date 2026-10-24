@@ -704,16 +704,21 @@ class _CalendarPageState extends State<CalendarPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '$day',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected || today
-                          ? FontWeight.w700
-                          : FontWeight.w400,
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : null,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '$day',
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected || today
+                            ? FontWeight.w700
+                            : FontWeight.w400,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : null,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 3),
