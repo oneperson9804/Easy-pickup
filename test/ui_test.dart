@@ -35,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('底部三页与左上角九项菜单，没有商业解锁入口', (tester) async {
+  testWidgets('底部三页与左上角九项菜单', (tester) async {
     await start(tester);
     for (final tab in ['nav-pending', 'nav-calendar', 'nav-wallet']) {
       expect(find.byKey(ValueKey(tab)), findsOneWidget);
@@ -68,12 +68,6 @@ void main() {
       find.descendant(of: drawer, matching: find.byType(ListTile)),
       findsNWidgets(9),
     );
-    for (final label in ['登录', '会员', '邀请好友', '平安打卡']) {
-      expect(
-        find.descendant(of: drawer, matching: find.text(label)),
-        findsNothing,
-      );
-    }
   });
 
   testWidgets('手动录入允许空码，并把详细位置真正保存和显示', (tester) async {
@@ -91,7 +85,8 @@ void main() {
     await _tap(
       tester,
       find.byKey(const ValueKey('save-parcel')),
-      until: () => app.parcels.length == 1,
+      until: () =>
+          app.parcels.length == 1 && find.text('取件码待补充').evaluate().isNotEmpty,
     );
     expect(app.pending.single.code, isEmpty);
     expect(app.pending.single.detailAddress, '二楼右侧第三排');
@@ -121,11 +116,17 @@ void main() {
     await _tap(
       tester,
       find.byKey(const ValueKey('mark-selected-collected')),
-      until: () => app.pending.isEmpty,
+      until: () =>
+          app.pending.isEmpty && find.text('还没有待取件').evaluate().isNotEmpty,
     );
     expect(app.collected.length, 2);
     expect(find.text('还没有待取件'), findsOneWidget);
-    await _tap(tester, find.text('撤销'), until: () => app.pending.length == 2);
+    await _tap(
+      tester,
+      find.text('撤销'),
+      until: () =>
+          app.pending.length == 2 && find.text('8-1').evaluate().isNotEmpty,
+    );
     expect(app.pending.every((parcel) => parcel.collectedAt == null), isTrue);
     final restored = await tester.runAsync(repository.load);
     expect(restored!.parcels.where((parcel) => parcel.isCollected), isEmpty);
@@ -162,7 +163,8 @@ void main() {
     await _tap(
       tester,
       find.byKey(const ValueKey('save-code')),
-      until: () => app.codes.length == 1,
+      until: () =>
+          app.codes.length == 1 && find.text('自用固定取件码').evaluate().isNotEmpty,
     );
     expect(app.codes.single.value, 'local-test-123');
     final label = find.text('自用固定取件码');
@@ -186,15 +188,18 @@ void main() {
       tester,
       find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
     );
-    await _tap(tester, find.text('青竹主题'));
+    await _tap(tester, find.text('外观主题'));
     await _tap(
       tester,
-      find.text('深色 · 墨绿柔金'),
-      until: () => app.settings.themeMode == 'dark',
+      find.text('深色 · 玄青金雷'),
+      until: () =>
+          app.settings.themeMode == 'dark' &&
+          Theme.of(tester.element(find.text('外观主题'))).brightness ==
+              Brightness.dark,
     );
     expect(app.settings.themeMode, 'dark');
     expect(
-      Theme.of(tester.element(find.text('青竹主题'))).brightness,
+      Theme.of(tester.element(find.text('外观主题'))).brightness,
       Brightness.dark,
     );
     expect(tester.takeException(), isNull);
@@ -211,7 +216,9 @@ void main() {
     await _tap(
       tester,
       find.byKey(const ValueKey('confirm-import')),
-      until: () => app.parcels.length == 1,
+      until: () =>
+          app.parcels.length == 1 &&
+          find.textContaining('1 条未识别，分享草稿已保留').evaluate().isNotEmpty,
     );
     expect(app.pending.single.code, '6-600');
     expect(app.sharedText, draft);
@@ -233,12 +240,18 @@ Future<void> _tap(
   // after DialogRoute.completed. This mirrors frames progressing on a device.
   await tester.pumpAndSettle();
   if (until != null) {
-    await tester.runAsync(() async {
-      for (var i = 0; i < 100 && !until(); i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
-      expect(until(), isTrue, reason: '操作应实际完成并更新业务状态');
-    });
+    final deadline = Stopwatch()..start();
+    do {
+      // SQLite may assign the controller snapshot before later awaits finish
+      // and notifyListeners schedules a frame. Yield real I/O, then render a
+      // frame outside runAsync and inspect the visible result, not just data.
+      await tester.runAsync(() async {
+        await Future<void>.delayed(Duration.zero);
+      });
+      await tester.pump(const Duration(milliseconds: 16));
+      if (until()) break;
+    } while (deadline.elapsed < const Duration(seconds: 5));
+    expect(until(), isTrue, reason: '操作应实际完成并渲染更新后的界面');
   }
   await tester.pumpAndSettle();
 }

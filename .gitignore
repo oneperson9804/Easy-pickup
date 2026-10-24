@@ -8,6 +8,9 @@ Desktop.ini
 .flutter-plugins
 .flutter-plugins-dependencies
 .idea/
+**/.kotlin/
+**/.gradle/
+**/.cxx/
 *.iml
 /build/
 /coverage/

@@ -1,46 +1,57 @@
-# 易取件 1.0.0 实施约定
+# 架构说明
 
-已获用户确认：完整重做现版所有实用功能，Android/iOS 共享源码，永久免费、免登录、无广告、无邀请或商业额度。仓库展示名 Easy pickup；GitHub slug 采用 easy-pickup（空格规范化为连字符）。
+更新日期：2026-10-25。
 
-## 并行所有权
+易取件使用 Flutter 共用界面和业务逻辑，通过平台通道接入 Android Kotlin 与 iOS Swift 系统功能。
 
-- 根代理：lib/core、lib/services、lib/main.dart、测试、发布与文档、图片资产。
-- UI 代理：lib/ui 下所有页面和主题。
-- 原生代理：android/app/src/main、iOS AppDelegate/原生服务/WidgetExtension 与 target 配置。
-- 工具链代理：Flutter SDK、自动生成骨架、必要 SDK；不覆盖以上手写文件。
+| 目录 | 职责 |
+| --- | --- |
+| `lib/main.dart` | 初始化本机存储并启动应用 |
+| `lib/ui/` | 待取件、日历、码夹、设置与说明页面 |
+| `lib/core/` | 数据模型、通知解析、状态操作、备份和仓库 |
+| `lib/services/` | 平台通道封装 |
+| `android/app/src/main/` | 短信、桌面组件、提醒、官方入口与分享接收 |
+| `ios/Runner/` | iOS 平台服务与应用入口 |
+| `ios/Shared/` | App Group 数据库和分享草稿队列 |
+| `ios/PickupWidget/` | WidgetKit 与已取交互 |
+| `ios/ShareExtension/` | 系统分享接收 |
+| `test/` | 解析、数据事务和界面行为测试 |
 
-## 本地数据契约 v1
+## 记录与状态
 
-数据库文件 easy_pickup.db。Android 使用 context.getDatabasePath；iOS 使用 group.io.github.oneperson9804.easypickup 容器，未配置签名组时主 App 可使用 Application Support，权限页面解释组件不可用原因。原生 getDatabasePath 返回同一绝对路径。SQLite user_version=1。
+设备端以 `easy_pickup.db` 为记录来源，SQLite `user_version=1`。Android 使用应用数据库目录；iOS 使用 App Group 容器，主应用在共享容器不可用时使用 Application Support。权限说明页展示共享空间状态。
 
-```sql
-CREATE TABLE IF NOT EXISTS parcels(id TEXT PRIMARY KEY,station TEXT NOT NULL,code TEXT NOT NULL,company TEXT NOT NULL DEFAULT '',raw_text TEXT NOT NULL DEFAULT '',arrived_at INTEGER NOT NULL,collected_at INTEGER,deleted_at INTEGER,source TEXT NOT NULL DEFAULT 'manual',source_key TEXT UNIQUE);
-CREATE INDEX IF NOT EXISTS parcels_state ON parcels(deleted_at,collected_at,arrived_at);
-CREATE TABLE IF NOT EXISTS saved_codes(id TEXT PRIMARY KEY,label TEXT NOT NULL,value TEXT NOT NULL,format TEXT NOT NULL DEFAULT 'qr',created_at INTEGER NOT NULL);
-CREATE TABLE IF NOT EXISTS rules(id TEXT PRIMARY KEY,kind TEXT NOT NULL,pattern TEXT NOT NULL,replacement TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
-```
+| 表 | 内容 |
+| --- | --- |
+| `parcels` | 站点、取件码、快递公司、原始通知、详细位置、到件时间、已取时间、删除时间与来源键 |
+| `saved_codes` | 静态码名称、内容、格式和创建时间 |
+| `rules` | 站点、公司识别的匹配文字与替换结果 |
+| `settings` | JSON 编码的设置和待确认草稿 |
 
-所有时间为 Unix 毫秒。collected_at IS NULL 为待取；deleted_at 为软删除。source_key 为原始来源去重标识，短信统一 sms:<address>:<date>:<body>，不按两秒窗口丢弃不同短信。手动录入可为 null。source=sms/manual/paste/ocr/backup。设置值为 JSON。
+时间使用 Unix 毫秒。`collected_at IS NULL` 表示待取，`deleted_at` 用于回收站。批量操作使用事务；撤销恢复操作前的已取时间。备份导入保留本机记录，按记录 ID 和来源键去重。
 
-## Flutter 接口（根代理实现）
+短信来源键使用发送方、来源时间与正文组合。Android 历史导入优先使用 `date_sent` 构造来源键，到件时间保留接收时间；实时接收使用相同约定。
 
-`lib/core/models.dart`：Parcel(id, station, code, company, rawText, arrivedAt, collectedAt?, deletedAt?, source, sourceKey?)；isCollected。SavedCode(id,label,value,format,createdAt)。RecognitionRule(id,kind,pattern,replacement)。AppSettings(themeMode,sortMode,stationOrder,widgetStyle,widgetShowCodes,reminderEnabled,reminderHour,reminderMinute,reminderWeekdays,smsLookbackDays)，copyWith。
+浏览器预览使用本地持久化快照，系统短信和桌面组件由设备端提供。
 
-`lib/core/app_controller.dart`：AppController extends ChangeNotifier。parcels（未删除全部记录）、trash、codes、rules、settings、platform、busy、error。pending/collected 派生 getter。方法：reload(), addParcel(Parcel), updateParcel(Parcel), markCollected(Iterable<String> ids,bool collected), removeParcels(Iterable<String> ids), restoreParcels(Iterable<String> ids), emptyTrash(), saveCode(SavedCode), deleteCode(String), saveRule(RecognitionRule), deleteRule(String), updateSettings(AppSettings), importText(String,{String source='paste'}), importSms(), exportBackup(), importBackup(), shareParcels(List<Parcel>,{bool asImage=false}), recognizeScreenshot(), checkUpdates(), openFeedback(), openRepository()。importText/importSms/importBackup返回ImportResult(added,duplicates,unrecognized)；recognizeScreenshot返回String?（用户取消为null）。exportBackup返回bool。错误向调用者抛出，UI展示；不吞成成功。
+## 系统接入
 
-`lib/services/platform_services.dart`：PlatformServices，getPermissions()->Future<Map<String,dynamic>>、requestSms()->Future<bool>、requestNotifications()->Future<bool>、pinWidget()->Future<bool>、openSettings()->Future<void>、openOfficial(String id)->Future<bool>、refreshWidgets()->Future<void>、scheduleReminders(AppSettings)->Future<void>。MethodChannel 名称 easy_pickup/platform；方法名 getDatabasePath/getPermissions/requestSms/importSms/requestNotifications/pinWidget/openSettings/openOfficial/refreshWidgets/scheduleReminders。importSms 参数 sinceMs，返回 added/duplicates/unrecognized；openOfficial 参数 id；scheduleReminders 参数 enabled/hour/minute/weekdays。
+平台通道为 `easy_pickup/platform`，包含存储路径、权限查询、短信导入、提醒调度、组件添加与刷新、官方平台跳转，以及分享草稿读取和确认。
 
-原生 Android 短信接收和 Flutter 共用同一 SQLite 数据库。原生写入后刷新组件；主 App onResume reload。组件操作直接更改 collected_at，主 App 恢复时同步。Flutter 写入后也 refreshWidgets。
+Android 原生接收器与 Flutter 使用同一数据库。接收短信后刷新组件，并向前台应用发送记录变更通知；应用恢复到前台时也会重新读取。组件内标记已取直接更新本机记录。
 
-## 界面入口
+iOS 的主应用、组件和分享扩展通过 `group.io.github.oneperson9804.easypickup` 共享数据。WidgetKit 提供系统尺寸与 App Intent 交互；本地周期提醒由系统调度。
 
-UI 根 `lib/ui/app.dart` 导出 EasyPickupApp({required AppController controller})，负责 MaterialApp（zh_CN、浅深色主题）和主界面。底部：待取件/取件日历/取件码夹。左上角菜单位置不变。首页常驻添加入口。扫码由 mobile_scanner 提供，静态码 barcode_widget 展示，截图识别由根服务调用 image_picker + google_mlkit_text_recognition。所有易取件的本地操作无登录及次数机制。
+## 分享导入
 
-设置/说明/FAQ/协议/隐私等全部新写，删除旧域名与品牌。分享取件信息使用系统分享，绝无邀请推广。图像资产使用 Image 模型生成，禁止手绘箭头引导。只允许主动检查更新请求 GitHub API，明确用户发起的外部分享、反馈、官方 App 跳转。
+文字或图片先保存为带稳定 `draftId` 的待确认内容。主应用读取草稿、识别图片并将文字保存到本机后，通过 `ackSharedImport` 确认清理临时文件。处理失败时保留待确认内容，供用户重试或忽略。
 
-## 交付与验收
+已有草稿等待确认期间，后续分享继续留在队列中。用户确认或忽略当前草稿后再读取下一份；部分内容识别失败时保留文字草稿。
 
-新 App Android applicationId / iOS bundle id：io.github.oneperson9804.easypickup。版本 1.0.0+1。新包与旧 com.sidutech.express 独立；通过一次性旧版导出 JSON 迁移，不读取其他 App 私有数据。无 Apple 付费账号时仍交付 iOS 源码与可验证的未签名构建流程，真机/TestFlight 正式分发另需账号。
+## 界面与视觉
 
-测试含文本识别/去重/批量状态/备份恢复，Android 模拟器安装、权限拒绝与开启、连续短信、小组件添加/缩放/关闭主程序后已取操作、日历一致性；新源代码不继承旧 APK 验收结论。
+底部导航为待取件、取件日历和取件码夹，左上角菜单管理设置与说明。首页提供常驻添加入口，日历分别显示到件和已取时间，并保留跨日未取件。
+
+视觉以青色灵力为主调，配合万年金雷竹的沉金纹理与细微雷光；提供浅色、深色和跟随系统模式。取件码、站点和操作按钮保持清晰的阅读顺序。
+
+构建步骤见[README](../README.md)，当前检查结果见[验证记录](VALIDATION.md)。

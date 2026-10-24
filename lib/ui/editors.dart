@@ -93,7 +93,7 @@ Future<void> importSms(
   if (context.mounted) {
     notice(
       context,
-      '新增 ${result.added} 件 · 跳过重复 ${result.duplicates} 条 · 未识别 ${result.unrecognized} 条',
+      '已保存 ${result.added} 件 · 重复 ${result.duplicates} 条 · 未识别 ${result.unrecognized} 条',
     );
   }
 });
@@ -172,7 +172,7 @@ Future<void> importTextDialog(
         context,
         result.added == 0 && result.duplicates == 0
             ? '没有识别到取件信息，可选择手动填写。'
-            : '新增 ${result.added} 件 · 跳过重复 ${result.duplicates} 条${result.unrecognized > 0 ? ' · ${result.unrecognized} 条未识别${source == 'share' ? '，分享草稿已保留' : '，可再次导入或手动填写'}' : ''}',
+            : '已保存 ${result.added} 件 · 重复 ${result.duplicates} 条${result.unrecognized > 0 ? ' · ${result.unrecognized} 条未识别${source == 'share' ? '，分享草稿已保留' : '，可再次导入或手动填写'}' : ''}',
       );
     }
   });

@@ -1,5 +1,5 @@
 name: easy_pickup
-description: 易取件：本地优先、免费免登录的开源取件助手。
+description: 易取件：取件整理、日历与随身码夹。
 publish_to: none
 version: 1.0.0+1
 environment:
@@ -43,5 +43,5 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: assets/branding/app_icon.png
-    background_color: '#176B59'
-    theme_color: '#176B59'
+    background_color: '#147D88'
+    theme_color: '#147D88'

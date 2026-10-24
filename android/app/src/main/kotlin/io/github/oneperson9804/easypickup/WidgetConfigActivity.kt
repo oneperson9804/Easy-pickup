@@ -24,12 +24,12 @@ class WidgetConfigActivity : Activity() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(28), dp(48), dp(28), dp(24))
-            setBackgroundColor(Color.parseColor("#F4F7F1"))
+            setBackgroundColor(Color.parseColor("#F1F7F7"))
         }
-        layout.addView(TextView(this).apply { text = "把易取件放到桌面"; textSize = 25f; setTextColor(Color.parseColor("#173D32")) })
+        layout.addView(TextView(this).apply { text = "把易取件放到桌面"; textSize = 25f; setTextColor(Color.parseColor("#173943")) })
         layout.addView(TextView(this).apply { text = "添加后长按组件，拖动边框调整大小。较大的组件会显示更多待取件。"; textSize = 15f; setPadding(0, dp(16), 0, dp(20)) })
         val group = RadioGroup(this)
-        val jade = RadioButton(this).apply { text = "竹青 · 深色"; this.id = 101 }
+        val jade = RadioButton(this).apply { text = "玄青 · 金雷"; this.id = 101 }
         val ivory = RadioButton(this).apply { text = "雾白 · 浅色"; this.id = 102 }
         group.addView(jade); group.addView(ivory)
         val privacy = Switch(this).apply { text = "在桌面显示取件码"; setPadding(0, dp(20), 0, dp(20)) }

@@ -323,7 +323,7 @@ class _HomeState extends State<_Home> with WidgetsBindingObserver {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '永久免费 · 本机保存',
+                    '取件记录 · 随手可查',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

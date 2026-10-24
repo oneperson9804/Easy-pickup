@@ -1,21 +1,21 @@
 {
-    "name": "easy_pickup",
-    "short_name": "easy_pickup",
+    "name": "易取件 · Easy pickup",
+    "short_name": "易取件",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#176B59",
-    "theme_color": "#176B59",
-    "description": "A new Flutter project.",
+    "background_color": "#147D88",
+    "theme_color": "#147D88",
+    "description": "取件清单、日历与随身码夹。",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "icons/Icon-192.png",
+            "src": "icons/icon-192.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "icons/Icon-512.png",
+            "src": "icons/icon-512.png",
             "sizes": "512x512",
             "type": "image/png"
         },

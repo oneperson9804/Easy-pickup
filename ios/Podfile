@@ -39,3 +39,18 @@ post_install do |installer|
     end
   end
 end
+
+post_integrate do |installer|
+  # Aggregate dependencies build app and test frameworks before linking.
+  installer.aggregate_targets.each do |aggregate_target|
+    user_project = aggregate_target.user_project
+    pods_project = installer.pods_project
+    unless user_project.reference_for_path(pods_project.path)
+      user_project.main_group.new_reference(pods_project.path)
+    end
+    pods_target = pods_project.targets.find { |target| target.name == aggregate_target.label }
+    raise "Missing CocoaPods target #{aggregate_target.label}" unless pods_target
+    aggregate_target.user_targets.each { |target| target.add_dependency(pods_target) }
+    user_project.save
+  end
+end

@@ -41,7 +41,7 @@ public final class ExportActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         pendingBackupName = state == null ? null : state.getString("pending_backup_name");
-        getWindow().setStatusBarColor(Color.rgb(23, 107, 89));
+        getWindow().setStatusBarColor(Color.rgb(20, 125, 136));
         ScrollView scroll = new ScrollView(this);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -52,14 +52,14 @@ public final class ExportActivity extends Activity {
         TextView title = new TextView(this);
         title.setText("迁移到易取件");
         title.setTextSize(27);
-        title.setTextColor(Color.rgb(23, 107, 89));
+        title.setTextColor(Color.rgb(20, 125, 136));
         layout.addView(title);
         TextView explanation = new TextView(this);
         explanation.setText("此工具只读取旧版的取件记录、站点顺序和识别规则，保存为易取件备份文件。\n\n"
                 + "1. 点击下方按钮，在系统文件界面保存 JSON 文件。\n"
                 + "2. 打开易取件，在设置中的备份与恢复导入该文件。\n"
                 + "3. 核对待取、已取和站点后，再决定是否卸载旧版。\n\n"
-                + "不会删除旧记录，不导出账号、会员、额度或平安打卡数据。备份包含取件码与原短信，请自行妥善保存。");
+                + "备份包含取件记录、详细位置、原始通知、识别规则和排列设置。请选择保存位置并妥善保管文件。");
         explanation.setTextSize(16);
         explanation.setTextColor(Color.rgb(23, 45, 40));
         explanation.setPadding(0, padding, 0, padding);

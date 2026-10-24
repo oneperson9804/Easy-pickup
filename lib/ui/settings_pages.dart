@@ -25,7 +25,7 @@ class SettingsPage extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.palette_outlined),
-                  title: const Text('青竹主题'),
+                  title: const Text('外观主题'),
                   subtitle: Text(
                     {
                           'system': '跟随系统',
@@ -128,7 +128,7 @@ class SettingsPage extends StatelessWidget {
                     if (context.mounted) {
                       notice(
                         context,
-                        '导入完成 · 新增 ${result.added} 条 · 重复 ${result.duplicates} 条',
+                        '导入完成 · 已保存 ${result.added} 条 · 重复 ${result.duplicates} 条',
                       );
                     }
                   }),
@@ -160,8 +160,8 @@ class SettingsPage extends StatelessWidget {
   Future<void> _theme(BuildContext context) async {
     final value = await _choose(context, '外观', app.settings.themeMode, const {
       'system': '跟随系统',
-      'light': '浅色 · 雾白竹青',
-      'dark': '深色 · 墨绿柔金',
+      'light': '浅色 · 灵青映金',
+      'dark': '深色 · 玄青金雷',
     });
     if (value != null && context.mounted) {
       await runTask(
@@ -312,7 +312,7 @@ class RecognitionRulesPage extends StatelessWidget {
       title: '识别纠正规则',
       actions: [
         IconButton(
-          tooltip: '新增规则',
+          tooltip: '添加规则',
           onPressed: () => _edit(context),
           icon: const Icon(Icons.add_rounded),
         ),
@@ -329,7 +329,7 @@ class RecognitionRulesPage extends StatelessWidget {
               action: OutlinedButton.icon(
                 onPressed: () => _edit(context),
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('新增规则'),
+                label: const Text('添加规则'),
               ),
               illustrated: false,
             ),
@@ -386,7 +386,7 @@ class RecognitionRulesPage extends StatelessWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text(existing == null ? '新增纠正规则' : '编辑纠正规则'),
+          title: Text(existing == null ? '添加纠正规则' : '编辑纠正规则'),
           content: SizedBox(
             width: 430,
             child: SingleChildScrollView(
@@ -685,7 +685,7 @@ class _PermissionsPageState extends State<PermissionsPage>
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text('权限由你决定。易取件不会要求登录，拒绝短信、相机或通知权限后，仍能手动添加和管理取件记录。'),
+            const Text('按使用需要开启权限。短信用于整理取件通知，相机用于扫码，通知用于取件提醒；手动添加始终可用。'),
             const SectionTitle('功能与权限'),
             if (supportsSms)
               _permission(
@@ -968,7 +968,7 @@ class WidgetSettingsPage extends StatelessWidget {
           const SectionTitle('显示设置'),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'jade', label: Text('墨竹青')),
+              ButtonSegment(value: 'jade', label: Text('玄青金雷')),
               ButtonSegment(value: 'ivory', label: Text('竹露白')),
             ],
             selected: {app.settings.widgetStyle},

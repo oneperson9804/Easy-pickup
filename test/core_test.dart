@@ -179,7 +179,7 @@ void main() {
         parcel.collectedAt,
       );
     });
-    test('跨日跨月200条批量已取、撤销及回收站，没有商业额度', () async {
+    test('跨日跨月200条批量已取、撤销及回收站', () async {
       final records = List.generate(
         200,
         (i) => Parcel(

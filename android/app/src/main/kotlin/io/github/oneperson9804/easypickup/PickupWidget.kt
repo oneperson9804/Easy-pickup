@@ -58,11 +58,11 @@ class PickupWidget : AppWidgetProvider() {
                     val style = store.setting("widgetStyle") as? String ?: "jade"
                     val showCodes = store.setting("widgetShowCodes") as? Boolean ?: true
                     val dark = style != "ivory"
-                    val foreground = Color.parseColor(if (dark) "#F5F8F2" else "#173D32")
-                    val secondary = Color.parseColor(if (dark) "#B9CDC1" else "#60766A")
+                    val foreground = Color.parseColor(if (dark) "#F2F9FA" else "#173943")
+                    val secondary = Color.parseColor(if (dark) "#B5CED3" else "#56717A")
                     views.setInt(R.id.widget_root, "setBackgroundResource", if (dark) R.drawable.widget_jade else R.drawable.widget_ivory)
                     views.setTextColor(R.id.widget_title, foreground)
-                    views.setTextColor(R.id.widget_count, Color.parseColor(if (dark) "#E2C683" else "#176B59"))
+                    views.setTextColor(R.id.widget_count, Color.parseColor(if (dark) "#E4C37C" else "#147D88"))
                     views.setTextColor(R.id.widget_empty, secondary)
                     views.setTextColor(R.id.widget_footer, secondary)
                     val (count, items) = store.pending()

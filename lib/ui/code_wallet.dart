@@ -86,7 +86,7 @@ class CodeWalletPage extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
         child: Text(
-          '第三方平台可能需要登录自己的账号。易取件不会收集平台账号，也不会生成或保存官方动态身份码。',
+          '官方身份码在对应平台查看和使用。本地码夹用于保存固定的二维码与条码。',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),

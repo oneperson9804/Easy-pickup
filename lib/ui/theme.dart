@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-const bamboo = Color(0xFF176B59);
-const gold = Color(0xFFC4A45E);
-const mist = Color(0xFFF4F7F1);
+const bamboo = Color(0xFF147D88);
+const gold = Color(0xFFC7A45B);
+const mist = Color(0xFFF1F7F7);
 
 ThemeData pickupTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(
     seedColor: bamboo,
     brightness: brightness,
-    primary: dark ? const Color(0xFF8CD4B8) : bamboo,
+    primary: dark ? const Color(0xFF83D5DB) : bamboo,
     secondary: dark ? const Color(0xFFE2C888) : const Color(0xFF806626),
-    surface: dark ? const Color(0xFF101D18) : mist,
+    surface: dark ? const Color(0xFF0B2028) : mist,
   );
   return ThemeData(
     useMaterial3: true,
@@ -30,7 +30,7 @@ ThemeData pickupTheme(Brightness brightness) {
       scrolledUnderElevation: 0,
     ),
     cardTheme: CardThemeData(
-      color: dark ? const Color(0xFF192A22) : Colors.white,
+      color: dark ? const Color(0xFF142D36) : Colors.white,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -41,7 +41,7 @@ ThemeData pickupTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: dark ? const Color(0xFF23382D) : const Color(0xFFEDF2E9),
+      fillColor: dark ? const Color(0xFF1C3B45) : const Color(0xFFE8F2F3),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
@@ -59,7 +59,7 @@ ThemeData pickupTheme(Brightness brightness) {
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: dark ? const Color(0xFF14231C) : Colors.white,
+      backgroundColor: dark ? const Color(0xFF102830) : Colors.white,
       indicatorColor: scheme.primaryContainer,
       labelTextStyle: WidgetStateProperty.all(
         const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),

@@ -222,7 +222,7 @@ class ImportResult {
     unrecognized: (m['unrecognized'] as num?)?.toInt() ?? 0,
   );
   @override
-  String toString() => '新增 $added 条，重复 $duplicates 条，未识别 $unrecognized 条';
+  String toString() => '导入 $added 条，重复 $duplicates 条，未识别 $unrecognized 条';
 }
 
 class AppSnapshot {

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Build an additive exporter against a private copy of the decoded old APK.
-
-The old APK, decoded tree, signing key and password are never placed in this repo.
-"""
+"""Build the JSON export add-on for the supported Android project snapshot."""
 from __future__ import annotations
 
 import argparse
@@ -24,7 +21,7 @@ def run(*arguments: str | Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--decoded", type=Path, required=True)
+    parser.add_argument("--legacy-project", type=Path, required=True)
     parser.add_argument("--sdk", type=Path, required=True)
     parser.add_argument("--jdk", type=Path, required=True)
     parser.add_argument("--apktool", type=Path, required=True)
@@ -37,12 +34,12 @@ def main() -> None:
         parser.error("Set EASY_MIGRATION_KEYSTORE_PASS in the process environment")
     if args.output.exists():
         parser.error("Output already exists; choose a new filename")
-    source = args.decoded.resolve(strict=True)
+    source = args.legacy_project.resolve(strict=True)
     if not (source / "apktool.yml").is_file() or not (source / "AndroidManifest.xml").is_file():
-        parser.error("--decoded must name the old Apktool project directory")
+        parser.error("--legacy-project must name the supported Android project snapshot")
     work = args.work.resolve()
     if work == source or source in work.parents:
-        parser.error("--work must be outside the original decoded directory")
+        parser.error("--work must be outside the input project directory")
     if work.exists():
         parser.error("--work must be a new directory")
     android_jar = args.sdk / "platforms/android-36/android.jar"
@@ -53,9 +50,9 @@ def main() -> None:
         if not required.is_file():
             parser.error(f"Missing tool/input: {required}")
     work.mkdir(parents=True)
-    decoded = work / "decoded"
-    shutil.copytree(source, decoded, ignore=shutil.ignore_patterns("build"))
-    metadata = decoded / "apktool.yml"
+    project = work / "project"
+    shutil.copytree(source, project, ignore=shutil.ignore_patterns("build"))
+    metadata = project / "apktool.yml"
     text = metadata.read_text(encoding="utf-8")
     previous = re.search(r"(?m)^\s*versionCode:\s*(\d+)\s*$", text)
     if previous is None or int(previous.group(1)) != 56:
@@ -63,7 +60,7 @@ def main() -> None:
     text = re.sub(r"(?m)^(\s*versionCode:)\s*\d+\s*$", r"\g<1> 57", text)
     text = re.sub(r"(?m)^(\s*versionName:).*$", r"\g<1> 3.1.5-migration", text)
     metadata.write_text(text, encoding="utf-8")
-    manifest_file = decoded / "AndroidManifest.xml"
+    manifest_file = project / "AndroidManifest.xml"
     manifest = ET.parse(manifest_file)
     application = manifest.getroot().find("application")
     if application is None:
@@ -86,7 +83,7 @@ def main() -> None:
     run(javac, "-encoding", "UTF-8", "-source", "8", "-target", "8", "-cp", android_jar, "-d", classes, java_source)
     run(tools / "d8", "--min-api", "26", "--lib", android_jar, "--output", dex, *sorted(classes.rglob("*.class")))
     unsigned = work / "migration-unsigned.apk"
-    run(java, "-jar", args.apktool, "b", "-f", decoded, "-o", unsigned)
+    run(java, "-jar", args.apktool, "b", "-f", project, "-o", unsigned)
     with zipfile.ZipFile(unsigned, "a", compression=zipfile.ZIP_DEFLATED) as archive:
         indexes = [int(match.group(1) or "1") for name in archive.namelist()
                    if (match := re.fullmatch(r"classes(\d*)\.dex", name))]

@@ -21,7 +21,7 @@ Future<void> main() async {
                   const Icon(
                     Icons.inventory_2_outlined,
                     size: 52,
-                    color: Color(0xff176b59),
+                    color: Color(0xff147d88),
                   ),
                   const SizedBox(height: 20),
                   const Text(

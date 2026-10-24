@@ -38,8 +38,8 @@ struct PickupWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: PickupEntry
     private var dark: Bool { entry.snapshot.style != "ivory" }
-    private var foreground: Color { dark ? Color(red: 0.96, green: 0.98, blue: 0.95) : Color(red: 0.09, green: 0.24, blue: 0.20) }
-    private var accent: Color { dark ? Color(red: 0.89, green: 0.78, blue: 0.51) : Color(red: 0.09, green: 0.42, blue: 0.35) }
+    private var foreground: Color { dark ? Color(red: 0.95, green: 0.98, blue: 0.98) : Color(red: 0.09, green: 0.22, blue: 0.27) }
+    private var accent: Color { dark ? Color(red: 0.89, green: 0.77, blue: 0.49) : Color(red: 0.08, green: 0.49, blue: 0.53) }
     private var limit: Int { family == .systemSmall ? 1 : family == .systemMedium ? 2 : 5 }
     var body: some View {
         VStack(alignment: .leading, spacing: family == .systemLarge ? 10 : 6) {
@@ -79,7 +79,7 @@ struct PickupWidgetView: View {
             }
         }
         .foregroundStyle(foreground)
-        .containerBackground(dark ? Color(red: 0.09, green: 0.24, blue: 0.20) : Color(red: 0.96, green: 0.97, blue: 0.94), for: .widget)
+        .containerBackground(dark ? Color(red: 0.07, green: 0.19, blue: 0.23) : Color(red: 0.95, green: 0.97, blue: 0.97), for: .widget)
     }
 }
 

@@ -430,10 +430,10 @@ class AppController extends ChangeNotifier {
       final height = 200.0 + rows.length * 190;
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
-      canvas.drawColor(const Color(0xfff4f7f1), BlendMode.src);
+      canvas.drawColor(const Color(0xfff1f7f7), BlendMode.src);
       canvas.drawRect(
         Rect.fromLTWH(0, 0, width, 16),
-        Paint()..color = const Color(0xff176b59),
+        Paint()..color = const Color(0xff147d88),
       );
       void paintText(
         String value,
@@ -459,7 +459,7 @@ class AppController extends ChangeNotifier {
         painter.paint(canvas, Offset(x, y));
       }
 
-      paintText('取件信息', 60, 55, 42, const Color(0xff176b59));
+      paintText('取件信息', 60, 55, 42, const Color(0xff147d88));
       for (var i = 0; i < rows.length; i++) {
         final p = rows[i];
         final y = 150.0 + i * 190;
