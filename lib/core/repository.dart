@@ -90,7 +90,7 @@ class ParcelRepository {
       path,
       version: 1,
       onConfigure: (db) async {
-        await db.execute('PRAGMA busy_timeout=5000');
+        await db.rawQuery('PRAGMA busy_timeout=5000');
       },
       onCreate: (db, version) async {
         for (final statement in databaseSchema) {

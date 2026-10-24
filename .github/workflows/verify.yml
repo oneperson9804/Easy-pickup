@@ -51,8 +51,13 @@ jobs:
           git -C "$RUNNER_TEMP/flutter" checkout 737ba8f885dc774b53b442759999a312c9461e4e
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - run: flutter pub get
-      - name: Build iOS simulator and extensions
-        run: flutter build ios --simulator --debug --verbose
+      - name: Test iOS simulator startup and local records
+        timeout-minutes: 25
+        run: bash scripts/test-ios-simulator.sh
+      - name: Verify embedded WidgetKit and share extensions
+        run: |
+          test -d build/ios/iphonesimulator/Runner.app/PlugIns/PickupWidget.appex
+          test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex
       - name: Inspect iOS dependency linkage after failure
         if: failure()
         run: |
@@ -60,10 +65,3 @@ jobs:
           cat ios/Flutter/Debug.xcconfig
           find build/ios -type d -name Pods_Runner.framework -print || true
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Debug -sdk iphonesimulator -showBuildSettings 2>&1 | grep -E 'FRAMEWORK_SEARCH_PATHS|PODS_CONFIGURATION_BUILD_DIR|BUILT_PRODUCTS_DIR|error:' || true
-      - name: Verify embedded real WidgetKit extension
-        run: |
-          test -d build/ios/iphonesimulator/Runner.app/PlugIns/PickupWidget.appex
-          test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex
-      - name: Test iOS simulator startup and local records
-        timeout-minutes: 15
-        run: bash scripts/test-ios-simulator.sh

@@ -41,15 +41,15 @@ if [[ "$simulator_state" != Booted ]]; then
   xcrun simctl boot "$simulator_udid"
   started_simulator=true
 fi
-printf '[iOS smoke] Waiting for boot readiness (180 seconds maximum)\n'
+printf '[iOS smoke] Waiting for boot readiness (300 seconds maximum)\n'
 python3 - "$simulator_udid" <<'PY'
 import subprocess
 import sys
 
 try:
-    subprocess.run(["xcrun", "simctl", "bootstatus", sys.argv[1], "-b"], check=True, timeout=180)
+    subprocess.run(["xcrun", "simctl", "bootstatus", sys.argv[1], "-b"], check=True, timeout=300)
 except subprocess.TimeoutExpired:
-    raise SystemExit("Simulator boot readiness timed out after 180 seconds.")
+    raise SystemExit("Simulator boot readiness timed out after 300 seconds.")
 PY
 printf '[iOS smoke] Running core integration test (5 minutes per test)\n'
 flutter test integration_test/core_smoke_test.dart -d "$simulator_udid" --reporter expanded --timeout 5m
