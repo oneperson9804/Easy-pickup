@@ -1,5 +1,7 @@
 # 易取件 · Easy pickup
 
+<p><img src="assets/branding/app_icon.png" alt="易取件" width="96"></p>
+
 把取件通知、日历和随身码夹集中整理在手机上。界面以青色灵力为主调，点缀万年金雷竹的沉金纹理与细微雷光。
 
 永久免费使用。
@@ -74,7 +76,7 @@ test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex
 
 ## 验证与版本
 
-1.0.0 正在进行设备与 CI 验收，当前结果见[验证记录](docs/VALIDATION.md)。版本包与校验值通过本仓库 Releases 发布。
+Android 1.0.0 安装包与 SHA-256 校验文件见本仓库 Releases，当前检查结果见[验证记录](docs/VALIDATION.md)。
 
 GitHub Actions 执行 Linux 检查、Android 构建和 macOS iOS 构建。源码结构与数据流见[架构说明](docs/IMPLEMENTATION.md)。
 
