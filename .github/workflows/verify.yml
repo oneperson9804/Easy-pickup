@@ -65,4 +65,5 @@ jobs:
           test -d build/ios/iphonesimulator/Runner.app/PlugIns/PickupWidget.appex
           test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex
       - name: Test iOS simulator startup and local records
+        timeout-minutes: 15
         run: bash scripts/test-ios-simulator.sh
