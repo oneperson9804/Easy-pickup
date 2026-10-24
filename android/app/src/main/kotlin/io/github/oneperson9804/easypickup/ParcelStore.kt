@@ -16,7 +16,7 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)
         db.enableWriteAheadLogging()
-        db.execSQL("PRAGMA busy_timeout=5000")
+        db.rawQuery("PRAGMA busy_timeout=5000", null).use { it.moveToFirst() }
     }
 
     override fun onCreate(db: SQLiteDatabase) {
