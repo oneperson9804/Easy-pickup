@@ -52,5 +52,5 @@ except subprocess.TimeoutExpired:
     raise SystemExit("Simulator boot readiness timed out after 300 seconds.")
 PY
 printf '[iOS smoke] Running core integration test (5 minutes per test)\n'
-flutter test integration_test/core_smoke_test.dart -d "$simulator_udid" --reporter expanded --timeout 5m
+flutter test integration_test/core_smoke_test.dart -d "$simulator_udid" --reporter expanded --timeout 5m --no-pub
 printf '[iOS smoke] Core integration test passed\n'

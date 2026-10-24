@@ -9,9 +9,12 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('本机启动、手动取件保存和底部导航', (tester) async {
+    debugPrint('[iOS smoke] application.main: start');
     await application.main();
+    debugPrint('[iOS smoke] application.main: ready');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('main-scaffold')), findsOneWidget);
+    debugPrint('[iOS smoke] Home scaffold ready');
 
     final controller = tester
         .widget<EasyPickupApp>(find.byType(EasyPickupApp))
@@ -21,6 +24,7 @@ void main() {
     expect(controller.error, isNull);
     final path = await controller.platform.databasePath();
     final database = await openDatabase(path, singleInstance: false);
+    debugPrint('[iOS smoke] Native bridge and database ready');
     final station = '青竹路测试站-${DateTime.now().microsecondsSinceEpoch}';
 
     try {
@@ -43,6 +47,7 @@ void main() {
         tester,
         () => controller.pending.any((parcel) => parcel.station == station),
       );
+      debugPrint('[iOS smoke] Manual parcel saved');
 
       final rows = await database.query(
         'parcels',
@@ -61,6 +66,7 @@ void main() {
       }
       expect(find.text('8-16384'), findsOneWidget);
       expect(controller.error, isNull);
+      debugPrint('[iOS smoke] Assertions complete');
     } finally {
       await database.delete(
         'parcels',
@@ -71,7 +77,7 @@ void main() {
       await controller.reload();
       await tester.pumpAndSettle();
     }
-  });
+  }, timeout: const Timeout(Duration(minutes: 5)));
 }
 
 Future<void> _tap(WidgetTester tester, String key) async {
