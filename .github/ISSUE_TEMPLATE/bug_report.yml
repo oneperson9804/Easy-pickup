@@ -1,0 +1,23 @@
+name: 问题反馈
+description: 报告易取件中的问题
+title: '[问题] '
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 遇到什么问题？
+      description: 请写出操作步骤、预期结果和实际结果。请勿附上真实取件码、手机号或完整短信。
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 应用版本、手机型号和系统版本
+      placeholder: 例如 1.0.0 / Pixel / Android 16
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: 补充信息
+      description: 可附上自行脱敏后的截图；日志仅在你确认后提交。

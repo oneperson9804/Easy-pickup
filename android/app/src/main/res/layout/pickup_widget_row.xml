@@ -1,0 +1,7 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="57dp" android:orientation="horizontal" android:gravity="center_vertical">
+    <LinearLayout android:id="@+id/widget_row_info" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical">
+        <TextView android:id="@+id/widget_station" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="待取站点" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/widget_code" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="取件码" android:textStyle="bold" android:textSize="20sp" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+    <Button android:id="@+id/widget_collect" android:layout_width="52dp" android:layout_height="48dp" android:text="已取" android:contentDescription="标记本件已取" android:textSize="12sp" android:textColor="#173D32" android:backgroundTint="#E2C683" android:padding="0dp" />
+</LinearLayout>

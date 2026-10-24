@@ -1,0 +1,44 @@
+name: easy_pickup
+description: 易取件：本地优先、免费免登录的开源取件助手。
+publish_to: none
+version: 1.0.0+1
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  sqflite: ^2.4.2
+  shared_preferences: ^2.5.3
+  file_picker: '>=10.3.10 <11.0.0'
+  share_plus: ^12.0.1
+  image_picker: ^1.2.1
+  google_mlkit_text_recognition: ^0.15.1
+  mobile_scanner: ^7.2.0
+  barcode_widget: ^2.0.4
+  url_launcher: ^6.3.2
+  http: ^1.5.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  sqflite_common_ffi: ^2.3.6
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/branding/
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/app_icon.png
+  remove_alpha_ios: true
+  min_sdk_android: 26
+  web:
+    generate: true
+    image_path: assets/branding/app_icon.png
+    background_color: '#176B59'
+    theme_color: '#176B59'

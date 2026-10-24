@@ -1,0 +1,53 @@
+name: Verify Easy pickup
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  FLUTTER_SUPPRESS_ANALYTICS: 'true'
+  CI: 'true'
+jobs:
+  android-and-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned official Flutter
+        shell: bash
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin 737ba8f885dc774b53b442759999a312c9461e4e
+          git -C "$RUNNER_TEMP/flutter" checkout 737ba8f885dc774b53b442759999a312c9461e4e
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - run: flutter test --reporter expanded
+      - run: flutter build apk --debug
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned official Flutter
+        shell: bash
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin 737ba8f885dc774b53b442759999a312c9461e4e
+          git -C "$RUNNER_TEMP/flutter" checkout 737ba8f885dc774b53b442759999a312c9461e4e
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter pub get
+      - run: flutter build ios --simulator --debug
+      - name: Verify embedded real WidgetKit extension
+        run: |
+          test -d build/ios/iphonesimulator/Runner.app/PlugIns/PickupWidget.appex
+          test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex

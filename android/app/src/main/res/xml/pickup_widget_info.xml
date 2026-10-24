@@ -1,0 +1,8 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp" android:minHeight="100dp"
+    android:minResizeWidth="120dp" android:minResizeHeight="80dp"
+    android:targetCellWidth="4" android:targetCellHeight="2"
+    android:initialLayout="@layout/pickup_widget" android:previewLayout="@layout/pickup_widget"
+    android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
+    android:configure="io.github.oneperson9804.easypickup.WidgetConfigActivity"
+    android:updatePeriodMillis="0" android:description="@string/widget_description" />
