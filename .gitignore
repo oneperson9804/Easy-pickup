@@ -1,0 +1,6 @@
+.local/
+/android/build/
+/dist/
+.DS_Store
+Thumbs.db
+Desktop.ini
