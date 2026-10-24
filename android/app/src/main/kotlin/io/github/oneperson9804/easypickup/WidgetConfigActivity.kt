@@ -29,8 +29,8 @@ class WidgetConfigActivity : Activity() {
         layout.addView(TextView(this).apply { text = "把易取件放到桌面"; textSize = 25f; setTextColor(Color.parseColor("#173943")) })
         layout.addView(TextView(this).apply { text = "添加后长按组件，拖动边框调整大小。较大的组件会显示更多待取件。"; textSize = 15f; setPadding(0, dp(16), 0, dp(20)) })
         val group = RadioGroup(this)
-        val jade = RadioButton(this).apply { text = "玄青 · 金雷"; this.id = 101 }
-        val ivory = RadioButton(this).apply { text = "雾白 · 浅色"; this.id = 102 }
+        val jade = RadioButton(this).apply { text = "玄青金雷"; this.id = 101 }
+        val ivory = RadioButton(this).apply { text = "竹露白"; this.id = 102 }
         group.addView(jade); group.addView(ivory)
         val privacy = Switch(this).apply { text = "在桌面显示取件码"; setPadding(0, dp(20), 0, dp(20)) }
         ParcelStore(this).use { store ->
@@ -38,7 +38,7 @@ class WidgetConfigActivity : Activity() {
             privacy.isChecked = store.setting("widgetShowCodes") as? Boolean ?: true
         }
         layout.addView(group); layout.addView(privacy)
-        layout.addView(TextView(this).apply { text = "不显示手机号与短信全文。组件的“已取”只更新本机记录。"; textSize = 13f; setPadding(0, 0, 0, dp(24)) })
+        layout.addView(TextView(this).apply { text = "组件显示站点与取件码；点击“已取”可记录已经取走的包裹。"; textSize = 13f; setPadding(0, 0, 0, dp(24)) })
         layout.addView(Button(this).apply {
             text = "添加到桌面"
             setOnClickListener {

@@ -880,16 +880,16 @@ class WidgetSettingsPage extends StatelessWidget {
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               color: app.settings.widgetStyle == 'ivory'
-                  ? const Color(0xFFF1F0E4)
-                  : const Color(0xFF163F32),
+                  ? const Color(0xFFF1F7F7)
+                  : const Color(0xFF12313B),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: gold.withValues(alpha: .55)),
             ),
             child: DefaultTextStyle(
               style: TextStyle(
                 color: app.settings.widgetStyle == 'ivory'
-                    ? const Color(0xFF183E30)
-                    : const Color(0xFFF2F8EE),
+                    ? const Color(0xFF12313B)
+                    : const Color(0xFFEAF4F5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

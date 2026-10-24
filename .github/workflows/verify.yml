@@ -39,7 +39,7 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 1
   ios-simulator:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -64,3 +64,5 @@ jobs:
         run: |
           test -d build/ios/iphonesimulator/Runner.app/PlugIns/PickupWidget.appex
           test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex
+      - name: Test iOS simulator startup and local records
+        run: bash scripts/test-ios-simulator.sh
