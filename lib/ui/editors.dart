@@ -13,52 +13,55 @@ Future<void> showAddMenu(BuildContext context, AppController app) async {
   final choice = await showModalBottomSheet<String>(
     context: context,
     showDragHandle: true,
+    isScrollControlled: true,
     builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '添加取件',
-                  style: Theme.of(context).textTheme.titleLarge,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '添加取件',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                 ),
               ),
-            ),
-            ListTile(
-              key: const ValueKey('add-manual'),
-              leading: const Icon(Icons.edit_note_rounded),
-              title: const Text('手动填写'),
-              subtitle: const Text('填写站点和取件码'),
-              onTap: () => Navigator.pop(context, 'manual'),
-            ),
-            ListTile(
-              key: const ValueKey('add-paste'),
-              leading: const Icon(Icons.content_paste_rounded),
-              title: const Text('粘贴取件信息'),
-              subtitle: const Text('从短信或聊天中复制文字后识别'),
-              onTap: () => Navigator.pop(context, 'paste'),
-            ),
-            ListTile(
-              key: const ValueKey('add-screenshot'),
-              leading: const Icon(Icons.image_outlined),
-              title: const Text('识别截图'),
-              subtitle: const Text('选择图片，在本机识别取件信息'),
-              onTap: () => Navigator.pop(context, 'image'),
-            ),
-            if (supportsSms)
               ListTile(
-                key: const ValueKey('add-sms'),
-                leading: const Icon(Icons.sms_outlined),
-                title: const Text('导入短信'),
-                subtitle: Text('识别近 ${app.settings.smsLookbackDays} 天的取件短信'),
-                onTap: () => Navigator.pop(context, 'sms'),
+                key: const ValueKey('add-manual'),
+                leading: const Icon(Icons.edit_note_rounded),
+                title: const Text('手动填写'),
+                subtitle: const Text('填写站点和取件码'),
+                onTap: () => Navigator.pop(context, 'manual'),
               ),
-          ],
+              ListTile(
+                key: const ValueKey('add-paste'),
+                leading: const Icon(Icons.content_paste_rounded),
+                title: const Text('粘贴取件信息'),
+                subtitle: const Text('从短信或聊天中复制文字后识别'),
+                onTap: () => Navigator.pop(context, 'paste'),
+              ),
+              ListTile(
+                key: const ValueKey('add-screenshot'),
+                leading: const Icon(Icons.image_outlined),
+                title: const Text('识别截图'),
+                subtitle: const Text('选择图片，在本机识别取件信息'),
+                onTap: () => Navigator.pop(context, 'image'),
+              ),
+              if (supportsSms)
+                ListTile(
+                  key: const ValueKey('add-sms'),
+                  leading: const Icon(Icons.sms_outlined),
+                  title: const Text('导入短信'),
+                  subtitle: Text('识别近 ${app.settings.smsLookbackDays} 天的取件短信'),
+                  onTap: () => Navigator.pop(context, 'sms'),
+                ),
+            ],
+          ),
         ),
       ),
     ),

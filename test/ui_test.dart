@@ -14,11 +14,13 @@ void main() {
   late Database database;
   late ParcelRepository repository;
   late AppController app;
+  late _TestPlatform platform;
 
   setUp(() async {
     database = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     repository = await ParcelRepository.forDatabase(database);
-    app = AppController(repository: repository, platform: _TestPlatform());
+    platform = _TestPlatform();
+    app = AppController(repository: repository, platform: platform);
     await app.reload();
   });
   tearDown(() async {
@@ -26,13 +28,37 @@ void main() {
     await database.close();
   });
 
-  Future<void> start(WidgetTester tester, {double width = 400}) async {
+  Future<void> start(
+    WidgetTester tester, {
+    double width = 400,
+    double height = 900,
+  }) async {
     tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = Size(width, 900);
+    tester.view.physicalSize = Size(width, height);
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(EasyPickupApp(controller: app));
     await tester.pumpAndSettle();
+  }
+
+  for (final scale in [1.0, 1.5]) {
+    testWidgets('360×640与${scale * 100}%字体下短信入口可滚动并点击', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      tester.view.padding = const FakeViewPadding(bottom: 24);
+      addTearDown(tester.view.resetPadding);
+      await start(tester, width: 360, height: 640);
+      await _tap(tester, find.byKey(const ValueKey('add-parcel')));
+      final sms = find.byKey(const ValueKey('add-sms'));
+      await tester.ensureVisible(sms);
+      await tester.pumpAndSettle();
+      expect(sms.hitTestable(), findsOneWidget);
+      expect(tester.getCenter(sms).dy, lessThan(616));
+      await _tap(tester, sms);
+      expect(platform.smsRequests, 1);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(tester.takeException(), isNull);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   }
 
   testWidgets('底部三页与左上角九项菜单', (tester) async {
@@ -257,6 +283,14 @@ Future<void> _tap(
 }
 
 class _TestPlatform extends PlatformServices {
+  int smsRequests = 0;
+
+  @override
+  Future<bool> requestSms() async {
+    smsRequests++;
+    return false;
+  }
+
   @override
   void setRecordsChangedCallback(Future<void> Function()? callback) {}
   @override

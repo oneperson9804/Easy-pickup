@@ -12,7 +12,7 @@
 - 按站点归组、搜索和自然排序；复制、编辑、批量标记已取、撤销及回收站恢复。
 - 手动填写、粘贴文字、截图识别和系统分享导入；Android 授权后可导入历史短信、接收新的取件通知。
 - 日历分别保存到件时间和已取时间，跨日未取持续可见。
-- 扫码或图片添加静态二维码、条码；官方动态身份码保留对应平台入口。
+- 扫码或图片添加静态二维码、条码；官方动态身份码通过对应平台入口查看。
 - 站点与公司识别纠正规则、每周取件提醒、JSON 备份与恢复。
 - Android 桌面清单可调整宽高；iOS 提供小、中、大 WidgetKit 组件及已取交互。
 - 浅色、深色和跟随系统主题。
@@ -58,7 +58,7 @@ test -d build/ios/iphonesimulator/Runner.app/PlugIns/PickupWidget.appex
 test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex
 ```
 
-真机分发前需配置开发者团队、Runner 与两个扩展的 Bundle ID，以及 `group.io.github.oneperson9804.easypickup`。App Store 和 TestFlight 分发需要有效的 Apple Developer Program 资格；中国大陆当前年费为 ¥688，见 [Apple 注册说明](https://developer.apple.com/cn/help/account/membership/enrolling-in-the-app/)。
+真机分发需配置开发者团队、Runner 与两个扩展的 Bundle ID，以及 `group.io.github.oneperson9804.easypickup`。App Store 和 TestFlight 使用 Apple Developer Program 分发，配置要求见 [Apple 注册说明](https://developer.apple.com/cn/help/account/membership/enrolling-in-the-app/)。
 
 ## 备份与迁移
 
