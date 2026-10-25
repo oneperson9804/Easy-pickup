@@ -136,6 +136,8 @@ class _ImportReviewPageState extends State<ImportReviewPage> {
       initiallyExpanded:
           row.item.parcel == null || row.item.parcel!.station == '待确认站点',
       leading: Checkbox(
+        semanticLabel:
+            '选择${row.code.text.isEmpty ? '这条取件信息' : row.code.text} ${row.station.text}',
         value: row.selected && !row.ignored,
         onChanged: (value) => setState(() {
           row.selected = value!;

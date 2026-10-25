@@ -53,9 +53,6 @@ class PageCaptureAccessibilityService : AccessibilityService() {
         // Our non-focusable toolbar must not replace the actual foreground platform.
         if (windows.any { it.id == event.windowId && it.type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY }) return
         windowGeneration++
-        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
-        val packageName = event.packageName?.toString() ?: return
-        foregroundPackage = packageName
         refreshOverlay()
     }
 
@@ -85,7 +82,21 @@ class PageCaptureAccessibilityService : AccessibilityService() {
         packageName in PageCaptureBridge.selected(this)
 
     fun refreshOverlay() {
+        foregroundPackage = if (running) focusedApplicationPackage() else ""
         if (allowed(foregroundPackage) && !captureBusy) showOverlay() else hideOverlay()
+    }
+
+    private fun focusedApplicationPackage(): String {
+        val visibleWindows = windows.filter { it.type != AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY }
+        val focused = visibleWindows.firstOrNull { it.isFocused }
+        val active = visibleWindows.firstOrNull { it.isActive }
+        // System dialogs, the notification shade and other focused windows hide controls.
+        val window = focused ?: active ?: return ""
+        if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION ||
+            (active != null && active.type != AccessibilityWindowInfo.TYPE_APPLICATION)) return ""
+        val root = window.root ?: return ""
+        return try { root.packageName?.toString().orEmpty() }
+        finally { recycle(root) }
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
