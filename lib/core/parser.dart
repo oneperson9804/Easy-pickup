@@ -13,6 +13,8 @@ class ParsedParcel {
 
 const _stationSuffix =
     r'(?:快递综合服务站|快递服务中心|物流服务中心|校园服务站|快递服务站|菜鸟驿站|快递中心|物流中心|服务中心|驿站|快递柜|丰巢|菜鸟柜|自提柜|服务站|代收点|快递站|超市|便利店|门卫室|门卫|收发室)';
+const _stationName =
+    r'(?:(?!\n[ \t]*(?:【|(?:取件|提货|取货|领件|出库|提取)码|(?:您的?)?(?:包裹|快件|快递)(?:尾号\d+)?(?:已|存放)|已(?:送达|到|投递|放|入库)))[^，,。；;！!:【】]){1,60}?';
 const _codeToken = r'[A-Za-z0-9]+(?:[ \t]*[-－—][ \t]*[A-Za-z0-9]+)*';
 const _codeEnd = r'(?![A-Za-z0-9/@_－—-]|\.[A-Za-z0-9])';
 final _labelledCode = RegExp(
@@ -22,19 +24,17 @@ final _labelledCode = RegExp(
 final _codeLabel = RegExp(r'(?:取件|提货|取货|领件|出库|提取)码');
 final _credentialCode = RegExp(
   '凭\\s*($_codeToken)$_codeEnd(?=\\s*(?:'
-  '(?:到|至|在|前往)\\s*[^，。；;！!\\n]{1,80}?(?:取件|取货|领件|提货|(?:领取|提取|取)[^，。；;！!\\n]{0,12}?(?:尾号|包裹|快件|快递))'
-  '|(?:到|至|在|前往)\\s*[^，。；;！!\\n]{1,60}?$_stationSuffix\\s*(?:取|领取)(?:[，。；;！!\\n]|\$)'
+  '(?:到|至|在|前往)\\s*[^，,。；;！!\\n]{1,80}?(?:取件|取货|领件|提货|(?:领取|提取|取)[^，,。；;！!\\n]{0,12}?(?:尾号|包裹|快件|快递))'
+  '|(?:到|至|在|前往)\\s*[^，,。；;！!\\n]{1,60}?$_stationSuffix\\s*(?:取|领取)(?:[，,。；;！!\\n]|\$)'
   '|(?:取件|取货|领件|提货)))',
   caseSensitive: false,
 );
 final _stationPattern = RegExp(
-  '(?:已(?:经)?(?:送达|投递[至到]?|到达?|放[至在]?|入库[至到]?)|送达|送至|存放[于在]?|请(?:到|至)|前往|到)\\s*([^，。；;！!\\n:【】]{1,60}?$_stationSuffix)',
+  '(?:已(?:经)?(?:送达|投递[至到]?|到达?|放[至在]?|入库[至到]?)|送达|送至|存放[于在]?|请(?:到|至)|前往|到)\\s*($_stationName$_stationSuffix)',
 );
-final _locatedStation = RegExp(
-  '[在于]\\s*([^，。；;！!\\n:【】]{1,60}?$_stationSuffix)',
-);
+final _locatedStation = RegExp('[在于]\\s*($_stationName$_stationSuffix)');
 final _namedStation = RegExp(
-  '(?:^|[，。；;！!\\n:】])\\s*([^，。；;！!\\n:【】]{1,60}?$_stationSuffix)',
+  '(?:^|[，,。；;！!\\n:】])\\s*($_stationName$_stationSuffix)',
 );
 const _addressStop =
     r'[，,。；;！!【】]|联系|咨询|电话|客服|热线|(?:取件|寄件)(?:和寄件)?(?:可)?咨询|(?:取件|提货|取货|领件|出库|提取)码|https?://|www\.|[A-Za-z0-9][A-Za-z0-9.-]*\.(?:cn|com|net|org)(?:/|\s|$)|(?:\+?86[- ]?)?1[3-9]\d{9}|0\d{2,3}[-－ ]?\d{7,8}';
@@ -118,6 +118,7 @@ ParsedParcel? parseParcelText(
               _locatedStation.firstMatch(cleaned)?.group(1) ??
               _namedStation.firstMatch(cleaned)?.group(1) ??
               '待确认站点')
+          .replaceAll(RegExp(r'[ \t]*\r?\n[ \t]*'), '')
           .trim();
   for (final rule in rules) {
     if (rule.pattern.isNotEmpty && cleaned.contains(rule.pattern)) {
@@ -155,6 +156,10 @@ List<String> splitImportText(String text) {
 
 final _noticeContext = RegExp(
   r'【[^】]+】|(?:包裹|快件|快递).*(?:已|存放|送|到|取)|(?:已送达|已到|已投递|已入库|请到|请至|前往|地址[:：]|联系电话|取件码|提货码|取货码|领件码|出库码|提取码|请及时(?:取件|领取)|取件和寄件|取件咨询)',
+);
+final _noticeLink = RegExp(
+  r'^(?:https?://|www\.|[A-Za-z0-9][A-Za-z0-9.-]*\.(?:cn|com|net|org)/)\S*$',
+  caseSensitive: false,
 );
 List<String> _splitNoticeBlock(String text) {
   final block = text.trim();
@@ -209,6 +214,16 @@ List<String> _groupNoticeUnits(String text) {
     final context =
         _noticeContext.hasMatch(unit) ||
         (codeLine && !pendingRecognized && _codeLabel.hasMatch(pending)) ||
+        (RegExp(r'(?:联系|咨询)\s*$').hasMatch(pending) &&
+            _noticeLink.hasMatch(unit)) ||
+        (pendingRecognized &&
+            [_stationPattern, _locatedStation, _namedStation].any((pattern) {
+              final station = pattern.firstMatch('$pending$unit');
+              return station != null &&
+                  station.start < pending.length &&
+                  station.end > pending.length &&
+                  station.group(1)!.contains('\n');
+            })) ||
         (_addressPattern.firstMatch(pending)?.end == pending.length &&
             _addressContinuation.hasMatch(unit) &&
             !_addressStopPattern.hasMatch(unit));

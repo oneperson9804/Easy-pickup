@@ -248,6 +248,10 @@ void main() {
           .isNotEmpty,
     );
     expect(app.parcels, isEmpty);
+    expect(
+      tester.getTopLeft(find.text('6-600')).dy,
+      lessThan(tester.getTopLeft(find.text('未识别文字')).dy),
+    );
     await _tap(
       tester,
       find.byKey(const ValueKey('save-reviewed-import')),

@@ -87,6 +87,33 @@ void main() {
     ]);
     expect(splitImportText('  \n\n '), isEmpty);
   });
+  test('OCR站点软换行与英文逗号保留同条通知及相邻记录边界', () {
+    const notice =
+        '【京东快递】取件码A3-2-4102,您\n的快件尾号1002已送达测试大学花\n溪京东校园服务站,地址:测试市测\n试区测试路69号,取件和寄件可咨询\n3.cn/example';
+    const footer = '第二屏通知结束';
+    const second = '【韵达快递】取件码B2-9-1003,包裹已到东门快递\n服务中心,请及时取件。';
+    final parts = splitImportText('$notice\n$footer\n$second');
+    expect(parts, [notice, footer, second]);
+    final first = parseParcelText(parts.first)!;
+    expect(first.station, '测试大学花溪京东校园服务站');
+    expect(first.detailAddress, '测试市测试区测试路69号');
+    expect(parseParcelText(parts.last)?.station, '东门快递服务中心');
+    const stationOnly = '取件码D3-9-2005,包裹已送达测试大学花\n溪京东校园服务站';
+    expect(splitImportText(stationOnly), [stationOnly]);
+    expect(parseParcelText(stationOnly)?.station, '测试大学花溪京东校园服务站');
+    const withoutHeading = '取件码C3-9-2004,包裹已送达西门校园服务站';
+    final adjacent = splitImportText('$notice\n$withoutHeading');
+    expect(adjacent.length, 2);
+    expect(adjacent.map((s) => parseParcelText(s)?.station), [
+      '测试大学花溪京东校园服务站',
+      '西门校园服务站',
+    ]);
+    const incomplete = '取件码E3-9-2006,包裹已送达测试大学花';
+    final separated = splitImportText('$incomplete\n$withoutHeading');
+    expect(separated.length, 2);
+    expect(parseParcelText(separated.first)?.station, '待确认站点');
+    expect(parseParcelText(separated.last)?.station, '西门校园服务站');
+  });
   test('按数字自然排序与撤销已取时间', () {
     final codes = ['8-10', '8-2', '8-100']..sort(naturalCompare);
     expect(codes, ['8-2', '8-10', '8-100']);

@@ -131,19 +131,20 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
 object SmsParser {
     // These patterns intentionally mirror lib/core/parser.dart; both use the same SMS fixtures.
     private const val stationSuffix = "(?:快递综合服务站|快递服务中心|物流服务中心|校园服务站|快递服务站|菜鸟驿站|快递中心|物流中心|服务中心|驿站|快递柜|丰巢|菜鸟柜|自提柜|服务站|代收点|快递站|超市|便利店|门卫室|门卫|收发室)"
+    private const val stationName = """(?:(?!\n[ \t]*(?:【|(?:取件|提货|取货|领件|出库|提取)码|(?:您的?)?(?:包裹|快件|快递)(?:尾号\d+)?(?:已|存放)|已(?:送达|到|投递|放|入库)))[^，,。；;！!:【】]){1,60}?"""
     private const val codeToken = """[A-Za-z0-9]+(?:[ \t]*[-－—][ \t]*[A-Za-z0-9]+)*"""
     private const val codeEnd = """(?![A-Za-z0-9/@_－—-]|\.[A-Za-z0-9])"""
     private val labelledCode = Regex("""(?:取件|提货|取货|领件|出库|提取)码(?:\s*[为是])?\s*[:：]?\s*($codeToken)$codeEnd""", RegexOption.IGNORE_CASE)
     private val credentialCode = Regex(
         """凭\s*($codeToken)$codeEnd(?=\s*(?:""" +
-            """(?:到|至|在|前往)\s*[^，。；;！!\n]{1,80}?(?:取件|取货|领件|提货|(?:领取|提取|取)[^，。；;！!\n]{0,12}?(?:尾号|包裹|快件|快递))""" +
-            """|(?:到|至|在|前往)\s*[^，。；;！!\n]{1,60}?$stationSuffix\s*(?:取|领取)(?:[，。；;！!\n]|$)""" +
+            """(?:到|至|在|前往)\s*[^，,。；;！!\n]{1,80}?(?:取件|取货|领件|提货|(?:领取|提取|取)[^，,。；;！!\n]{0,12}?(?:尾号|包裹|快件|快递))""" +
+            """|(?:到|至|在|前往)\s*[^，,。；;！!\n]{1,60}?$stationSuffix\s*(?:取|领取)(?:[，,。；;！!\n]|$)""" +
             """|(?:取件|取货|领件|提货)))""",
         RegexOption.IGNORE_CASE
     )
-    private val stationPattern = Regex("""(?:已(?:经)?(?:送达|投递[至到]?|到达?|放[至在]?|入库[至到]?)|送达|送至|存放[于在]?|请(?:到|至)|前往|到)\s*([^，。；;！!\n:【】]{1,60}?$stationSuffix)""")
-    private val locatedStation = Regex("""[在于]\s*([^，。；;！!\n:【】]{1,60}?$stationSuffix)""")
-    private val namedStation = Regex("""(?:^|[，。；;！!\n:】])\s*([^，。；;！!\n:【】]{1,60}?$stationSuffix)""")
+    private val stationPattern = Regex("""(?:已(?:经)?(?:送达|投递[至到]?|到达?|放[至在]?|入库[至到]?)|送达|送至|存放[于在]?|请(?:到|至)|前往|到)\s*($stationName$stationSuffix)""")
+    private val locatedStation = Regex("""[在于]\s*($stationName$stationSuffix)""")
+    private val namedStation = Regex("""(?:^|[，,。；;！!\n:】])\s*($stationName$stationSuffix)""")
     private const val addressStop = """[，,。；;！!【】]|联系|咨询|电话|客服|热线|(?:取件|寄件)(?:和寄件)?(?:可)?咨询|(?:取件|提货|取货|领件|出库|提取)码|https?://|www\.|[A-Za-z0-9][A-Za-z0-9.-]*\.(?:cn|com|net|org)(?:/|\s|$)|(?:\+?86[- ]?)?1[3-9]\d{9}|0\d{2,3}[-－ ]?\d{7,8}"""
     private val addressPattern = Regex("""(?:详细地址|取件地址|地址)\s*[:：]\s*([\s\S]*?)(?=$addressStop|$)""", RegexOption.IGNORE_CASE)
     private val companies = listOf("中通", "圆通", "申通", "韵达", "顺丰", "极兔", "邮政", "EMS", "京东", "德邦", "菜鸟", "百世", "丰网")
@@ -166,7 +167,8 @@ object SmsParser {
         val code = pickupCode(cleaned) ?: return null
         val station = (stationPattern.find(cleaned)?.groupValues?.get(1)
             ?: locatedStation.find(cleaned)?.groupValues?.get(1)
-            ?: namedStation.find(cleaned)?.groupValues?.get(1) ?: "待确认站点").trim()
+            ?: namedStation.find(cleaned)?.groupValues?.get(1) ?: "待确认站点")
+            .replace(Regex("""[ \t]*\r?\n[ \t]*"""), "").trim()
         val companyText = Regex("【([^】]{1,20})】").find(cleaned)?.groupValues?.get(1) ?: cleaned
         val company = companies.firstOrNull { companyText.contains(it) } ?: ""
         val detailAddress = (addressPattern.find(cleaned)?.groupValues?.get(1) ?: "")

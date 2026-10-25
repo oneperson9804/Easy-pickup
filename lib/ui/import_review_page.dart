@@ -37,10 +37,14 @@ class _ReviewRow {
 
 class _ImportReviewPageState extends State<ImportReviewPage> {
   final form = GlobalKey<FormState>();
-  late final rows = widget.app
-      .previewImport(widget.text, source: widget.source)
-      .map(_ReviewRow.new)
-      .toList();
+  late final candidates = widget.app.previewImport(
+    widget.text,
+    source: widget.source,
+  );
+  late final rows = [
+    ...candidates.where((item) => item.parcel != null).map(_ReviewRow.new),
+    ...candidates.where((item) => item.parcel == null).map(_ReviewRow.new),
+  ];
   bool saving = false;
   @override
   void dispose() {
@@ -52,6 +56,12 @@ class _ImportReviewPageState extends State<ImportReviewPage> {
 
   Future<void> save() async {
     if (saving || !form.currentState!.validate()) return;
+    if (rows.any(
+      (row) => row.selected && !row.ignored && row.station.text.trim().isEmpty,
+    )) {
+      notice(context, '请展开勾选的记录，填写取件站点');
+      return;
+    }
     setState(() => saving = true);
     try {
       final selected = rows.where((row) => row.selected && !row.ignored).map((
@@ -134,7 +144,8 @@ class _ImportReviewPageState extends State<ImportReviewPage> {
     child: ExpansionTile(
       key: ValueKey('review-row-$index'),
       initiallyExpanded:
-          row.item.parcel == null || row.item.parcel!.station == '待确认站点',
+          row.item.parcel?.station == '待确认站点' ||
+          (index == 0 && row.item.parcel == null),
       leading: Checkbox(
         semanticLabel:
             '选择${row.code.text.isEmpty ? '这条取件信息' : row.code.text} ${row.station.text}',
@@ -145,7 +156,11 @@ class _ImportReviewPageState extends State<ImportReviewPage> {
         }),
       ),
       title: Text(
-        row.code.text.isEmpty ? '待补充取件码' : row.code.text,
+        row.item.parcel == null
+            ? '未识别文字'
+            : row.code.text.isEmpty
+            ? '待补充取件码'
+            : row.code.text,
         style: Theme.of(context).textTheme.titleLarge,
       ),
       subtitle: Text(
@@ -154,8 +169,10 @@ class _ImportReviewPageState extends State<ImportReviewPage> {
             : row.item.duplicate != null
             ? '可能已存在 · ${row.item.duplicate!.station}${row.item.duplicate!.isCollected ? ' · 已取' : ''}'
             : row.station.text.isEmpty
-            ? '请填写站点，或保留这段文字稍后处理'
+            ? row.item.rawText
             : row.station.text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       expandedCrossAxisAlignment: CrossAxisAlignment.start,
