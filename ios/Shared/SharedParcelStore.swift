@@ -25,6 +25,7 @@ struct WidgetParcelSnapshot {
     var parcels: [WidgetParcelRecord] = []
     var style = "jade"
     var showCodes = true
+    var opacity = 0.42
 }
 
 enum SharedParcelStore {
@@ -91,13 +92,14 @@ enum SharedParcelStore {
                 snapshot.parcels.append(WidgetParcelRecord(id: text(statement, 0), station: text(statement, 1), code: text(statement, 2)))
             }
             sqlite3_finalize(statement)
-            guard sqlite3_prepare_v2(database, "SELECT key,value FROM settings WHERE key IN ('widgetStyle','widgetShowCodes')", -1, &statement, nil) == SQLITE_OK else { throw SharedParcelError.databaseOperation }
+            guard sqlite3_prepare_v2(database, "SELECT key,value FROM settings WHERE key IN ('widgetStyle','widgetShowCodes','widgetOpacity')", -1, &statement, nil) == SQLITE_OK else { throw SharedParcelError.databaseOperation }
             while sqlite3_step(statement) == SQLITE_ROW {
                 let key = text(statement, 0)
                 let data = Data(text(statement, 1).utf8)
                 let value = try JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
                 if key == "widgetStyle", let style = value as? String { snapshot.style = style }
                 if key == "widgetShowCodes", let enabled = value as? Bool { snapshot.showCodes = enabled }
+                if key == "widgetOpacity", let opacity = value as? Double { snapshot.opacity = min(0.9, max(0.18, opacity)) }
             }
             sqlite3_finalize(statement)
             return snapshot

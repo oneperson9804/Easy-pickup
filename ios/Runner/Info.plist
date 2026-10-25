@@ -31,7 +31,16 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>选择取件短信截图或码图片，在本机识别内容。</string>
 	<key>LSApplicationQueriesSchemes</key>
-	<array><string>cainiao</string><string>taobao</string><string>pinduoduo</string><string>openjd</string></array>
+	<array>
+		<string>cainiao</string>
+		<string>taobao</string>
+		<string>tbopen</string>
+		<string>pinduoduo</string>
+		<string>openjd</string>
+		<string>snssdk1128</string>
+		<string>snssdk664226</string>
+		<string>xhsdiscover</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

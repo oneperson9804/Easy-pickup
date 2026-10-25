@@ -1,0 +1,5 @@
+<resources>
+    <string name="page_capture_service_label">易取件页面识别</string>
+    <string name="page_capture_service_summary">主动读取选定平台的当前取件页面，预览后添加</string>
+    <string name="page_capture_service_description">开始识别后，选定平台中会显示取件识别按钮。点击读取本页时读取当前可见文字；系统支持时，可点击截图截取当前取件窗口，供易取件识别取件码和站点。内容在设备上暂存，回到易取件预览后添加。可拖动按钮避开内容，向下滚动后继续读取，或点击结束停止本次识别。</string>
+</resources>

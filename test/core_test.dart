@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:easy_pickup/core/models.dart';
 import 'package:easy_pickup/core/parser.dart';
+import 'package:easy_pickup/core/import_review.dart';
 import 'package:easy_pickup/core/repository.dart';
 import 'package:easy_pickup/core/app_controller.dart';
 import 'package:easy_pickup/services/platform_services.dart';
@@ -19,6 +20,7 @@ void main() {
       if (c['code'] != null) {
         expect(result?.station, c['station']);
         expect(result?.company, c['company']);
+        expect(result?.detailAddress, c['detailAddress'] ?? '');
       }
     }
   });
@@ -42,6 +44,48 @@ void main() {
     );
     expect(result?.station, '学校东门');
     expect(result?.company, '新快递公司');
+  });
+  test('批量文字区分通知、换行正文和未识别片段', () {
+    const a = '【韵达快递】凭A13-1-2030到重庆理工大学快递服务中心取尾号5397包裹';
+    const b = '【京东快递】取件码A3-2-2048，您的快件已送达花溪京东校园服务站。';
+    expect(splitImportText('$a$b'), [a, b]);
+    expect(splitImportText('待整理的文字\n$a\n$b'), ['待整理的文字', a, b]);
+    expect(splitImportText('$a\n无法判断的内容\n$b'), [a, '无法判断的内容', b]);
+    const multiline = '【圆通速递】\n包裹已到北门快递服务中心\n取件码：\nA13 - 1 - 2030\n请及时领取。';
+    expect(splitImportText(multiline), [multiline]);
+    expect(splitImportText('$multiline\n$b'), [multiline, b]);
+    const multilineAddress =
+        '【京东快递】取件码4-301，快件已送达南门校园服务站。\n详细地址：重庆巴南区\n李家沱街道红光大道69号\n联系电话13800138000，取件请提前核对。';
+    expect(splitImportText(multilineAddress), [multilineAddress]);
+    expect(
+      parseParcelText(splitImportText(multilineAddress).single)?.detailAddress,
+      '重庆巴南区李家沱街道红光大道69号',
+    );
+    const fullWidth = '【邮政快递】\n取件码：\n5－06－2018\n包裹已送达南门校园服务站';
+    expect(splitImportText(fullWidth), [fullWidth]);
+    const codeFirst = '取件码：3-303\n包裹已送达南门校园服务站';
+    expect(splitImportText(codeFirst), [codeFirst]);
+    const first = '包裹已到东门驿站，取件码1-101。';
+    const second = '包裹已到西门驿站，取件码2-202。';
+    expect(splitImportText('$first$second'), [first, second]);
+    expect(splitImportText('$first\n未识别内容\n$second'), [first, '未识别内容', second]);
+    expect(splitImportText('$first\n9999\n$second'), [first, '9999', second]);
+    expect(splitImportText('$first\n取件码？？\n$second'), [first, '取件码？？', second]);
+    final joined = splitImportText('包裹已到东门驿站，取件码1-101，包裹已到西门驿站，取件码2-202');
+    expect(joined.map((s) => parseParcelText(s)?.code), ['1-101', '2-202']);
+    expect(joined.map((s) => parseParcelText(s)?.station), ['东门驿站', '西门驿站']);
+    final joinedCodeFirst = splitImportText(
+      '取件码1-101，包裹已到东门驿站，取件码2-202，包裹已到西门驿站',
+    );
+    expect(joinedCodeFirst.map((s) => parseParcelText(s)?.code), [
+      '1-101',
+      '2-202',
+    ]);
+    expect(joinedCodeFirst.map((s) => parseParcelText(s)?.station), [
+      '东门驿站',
+      '西门驿站',
+    ]);
+    expect(splitImportText('  \n\n '), isEmpty);
   });
   test('按数字自然排序与撤销已取时间', () {
     final codes = ['8-10', '8-2', '8-100']..sort(naturalCompare);
@@ -76,6 +120,90 @@ void main() {
   });
 
   sqfliteFfiInit();
+  test('跨来源相似记录可核对，站点、包裹尾号和时间各自区分', () {
+    const body =
+        '【京东快递】取件码A3-2-2048，您的快件尾号9127已送达重庆理工大学花溪京东校园服务站，地址：重庆巴南区李家沱街道红光大道69号，取件和寄件可咨询 3.cn/3-7nrNp7';
+    final now = DateTime(2026, 10, 25);
+    final original = reviewImport(body, existing: [], now: now).single.parcel!;
+    expect(original.detailAddress, '重庆巴南区李家沱街道红光大道69号');
+    final copy = reviewImport(
+      body.replaceAll('，', '，\n'),
+      existing: [original],
+      now: now,
+    );
+    expect(copy.single.duplicate?.id, original.id);
+    expect(
+      reviewImport(
+        body.replaceFirst('9127', '1234'),
+        existing: [original],
+        now: now,
+      ).single.duplicate,
+      isNull,
+    );
+    expect(
+      reviewImport(
+        body.replaceAll('花溪京东校园服务站', '北门菜鸟驿站'),
+        existing: [original],
+        now: now,
+      ).single.duplicate,
+      isNull,
+    );
+    expect(
+      reviewImport(
+        body,
+        existing: [
+          original.copyWith(arrivedAt: now.subtract(const Duration(days: 8))),
+        ],
+        now: now,
+      ).single.duplicate,
+      isNull,
+    );
+    final old = original.copyWith(
+      station: '待确认站点',
+      detailAddress: '',
+      collectedAt: now,
+      source: 'sms',
+      sourceKey: 'sms:retained',
+    );
+    final complete = completeNoticeMetadata(old, const [])!;
+    expect(complete.station, '重庆理工大学花溪京东校园服务站');
+    expect(complete.detailAddress, original.detailAddress);
+    expect(complete.id, old.id);
+    expect(complete.sourceKey, old.sourceKey);
+    expect(complete.collectedAt, old.collectedAt);
+    expect(
+      completeNoticeMetadata(old.copyWith(source: 'manual'), const []),
+      isNull,
+    );
+    expect(
+      completeNoticeMetadata(
+        original.copyWith(detailAddress: '', source: 'sms'),
+        const [],
+      ),
+      isNull,
+    );
+    const phoneFirst = '手机尾号5397，包裹尾号9127，已到东门驿站，取件码1-101。';
+    final first = reviewImport(
+      phoneFirst,
+      existing: [],
+      now: now,
+    ).single.parcel!;
+    expect(
+      reviewImport(
+        phoneFirst.replaceFirst('9127', '1234'),
+        existing: [first],
+        now: now,
+      ).single.duplicate,
+      isNull,
+    );
+  });
+  test('反馈邮箱和中文草稿URI保持内容', () {
+    const message = '型号：手机 A\n系统：Android 16\n取件码 A1+2 & B';
+    final uri = AppController.feedbackUri(message);
+    expect(uri.path, 'wmiles98@163.com');
+    expect(uri.queryParameters['body'], message);
+    expect(uri.queryParameters['subject'], contains(AppController.appVersion));
+  });
   group('真实SQLite记录及备份事务', () {
     late Database db;
     late ParcelRepository repository;

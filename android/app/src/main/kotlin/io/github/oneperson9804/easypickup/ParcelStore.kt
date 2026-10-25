@@ -9,7 +9,7 @@ import org.json.JSONArray
 import org.json.JSONTokener
 import java.util.UUID
 
-data class ParsedSms(val station: String, val code: String, val company: String)
+data class ParsedSms(val station: String, val code: String, val company: String, val detailAddress: String = "")
 data class WidgetParcel(val id: String, val station: String, val code: String)
 
 class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db", null, 1) {
@@ -70,6 +70,20 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
     fun insertSms(address: String, sourceDate: Long, body: String, receivedAt: Long = sourceDate): Int {
         val parsed = parseSms(body) ?: return -1
         val sourceKey = "sms:$address:$sourceDate:$body"
+        val normalized = body.replace(Regex("[\\s\\u200b\\uFEFF]+"), "")
+            .replace(Regex("[－—–﹣]"), "-")
+        val imported = readableDatabase.rawQuery(
+            "SELECT raw_text FROM parcels WHERE source <> 'sms' AND deleted_at IS NULL AND ABS(arrived_at - ?) <= ?",
+            arrayOf(receivedAt.toString(), (7L * 86400000).toString())
+        ).use { rows ->
+            var found = false
+            while (rows.moveToNext() && !found) {
+                found = rows.getString(0).replace(Regex("[\\s\\u200b\\uFEFF]+"), "")
+                    .replace(Regex("[－—–﹣]"), "-") == normalized
+            }
+            found
+        }
+        if (imported) return 0
         // Legacy exports lack the SMS sender. Link only one unambiguous migrated
         // record, preserving its edited location and collected timestamp.
         val migrated = readableDatabase.rawQuery(
@@ -87,6 +101,7 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
             put("id", UUID.randomUUID().toString())
             put("station", parsed.station)
             put("code", parsed.code)
+            put("detail_address", parsed.detailAddress)
             put("company", parsed.company)
             put("raw_text", body)
             put("arrived_at", receivedAt)
@@ -96,7 +111,7 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
         return if (writableDatabase.insertWithOnConflict("parcels", null, values, SQLiteDatabase.CONFLICT_IGNORE) == -1L) 0 else 1
     }
 
-    fun pending(limit: Int = 12): Pair<Int, List<WidgetParcel>> {
+    fun pending(limit: Int = -1): Pair<Int, List<WidgetParcel>> {
         val db = readableDatabase
         val count = db.rawQuery("SELECT COUNT(*) FROM parcels WHERE deleted_at IS NULL AND collected_at IS NULL", null).use {
             it.moveToFirst(); it.getInt(0)
@@ -115,20 +130,47 @@ class ParcelStore(context: Context) : SQLiteOpenHelper(context, "easy_pickup.db"
 
 object SmsParser {
     // These patterns intentionally mirror lib/core/parser.dart; both use the same SMS fixtures.
-    private val codePattern = Regex("(?:取件|提货|取货|领件|出库|提取)码\\s*[:为是]?\\s*([A-Za-z0-9][A-Za-z0-9\\-－— ]{1,24})", RegexOption.IGNORE_CASE)
-    private val stationPattern = Regex("(?:已到达?|已放至?|送至|存放[于在]?|请到|已入库[至到]?|在)\\s*([^，。；;！!\\n]{2,60}?(?:菜鸟驿站|驿站|快递柜|丰巢|菜鸟柜|自提柜|服务站|代收点|快递站|超市|便利店|门卫室|门卫|收发室))")
-    private val namedStation = Regex("([^，。；;！!\\n:]{1,32}(?:驿站|快递柜|丰巢|自提柜|代收点|超市|便利店|门卫室|收发室))")
+    private const val stationSuffix = "(?:快递综合服务站|快递服务中心|物流服务中心|校园服务站|快递服务站|菜鸟驿站|快递中心|物流中心|服务中心|驿站|快递柜|丰巢|菜鸟柜|自提柜|服务站|代收点|快递站|超市|便利店|门卫室|门卫|收发室)"
+    private const val codeToken = """[A-Za-z0-9]+(?:[ \t]*[-－—][ \t]*[A-Za-z0-9]+)*"""
+    private const val codeEnd = """(?![A-Za-z0-9/@_－—-]|\.[A-Za-z0-9])"""
+    private val labelledCode = Regex("""(?:取件|提货|取货|领件|出库|提取)码(?:\s*[为是])?\s*[:：]?\s*($codeToken)$codeEnd""", RegexOption.IGNORE_CASE)
+    private val credentialCode = Regex(
+        """凭\s*($codeToken)$codeEnd(?=\s*(?:""" +
+            """(?:到|至|在|前往)\s*[^，。；;！!\n]{1,80}?(?:取件|取货|领件|提货|(?:领取|提取|取)[^，。；;！!\n]{0,12}?(?:尾号|包裹|快件|快递))""" +
+            """|(?:到|至|在|前往)\s*[^，。；;！!\n]{1,60}?$stationSuffix\s*(?:取|领取)(?:[，。；;！!\n]|$)""" +
+            """|(?:取件|取货|领件|提货)))""",
+        RegexOption.IGNORE_CASE
+    )
+    private val stationPattern = Regex("""(?:已(?:经)?(?:送达|投递[至到]?|到达?|放[至在]?|入库[至到]?)|送达|送至|存放[于在]?|请(?:到|至)|前往|到)\s*([^，。；;！!\n:【】]{1,60}?$stationSuffix)""")
+    private val locatedStation = Regex("""[在于]\s*([^，。；;！!\n:【】]{1,60}?$stationSuffix)""")
+    private val namedStation = Regex("""(?:^|[，。；;！!\n:】])\s*([^，。；;！!\n:【】]{1,60}?$stationSuffix)""")
+    private const val addressStop = """[，,。；;！!【】]|联系|咨询|电话|客服|热线|(?:取件|寄件)(?:和寄件)?(?:可)?咨询|(?:取件|提货|取货|领件|出库|提取)码|https?://|www\.|[A-Za-z0-9][A-Za-z0-9.-]*\.(?:cn|com|net|org)(?:/|\s|$)|(?:\+?86[- ]?)?1[3-9]\d{9}|0\d{2,3}[-－ ]?\d{7,8}"""
+    private val addressPattern = Regex("""(?:详细地址|取件地址|地址)\s*[:：]\s*([\s\S]*?)(?=$addressStop|$)""", RegexOption.IGNORE_CASE)
     private val companies = listOf("中通", "圆通", "申通", "韵达", "顺丰", "极兔", "邮政", "EMS", "京东", "德邦", "菜鸟", "百世", "丰网")
 
+    private fun pickupCode(text: String): String? {
+        val candidates = mutableListOf<Pair<Int, String>>()
+        for (pattern in listOf(labelledCode, credentialCode)) {
+            for (match in pattern.findAll(text)) {
+                val code = match.groupValues[1].replace('－', '-').replace('—', '-').replace(Regex("\\s"), "")
+                val parts = code.split('-')
+                if (code.length in 2..24 && code.any { it.isDigit() } && code.count { it.isDigit() } <= 10 &&
+                    parts.size <= 5 && parts.all { it.length <= 10 }) candidates.add(match.range.first to code)
+            }
+        }
+        return candidates.minByOrNull { it.first }?.second
+    }
+
     fun parse(body: String): ParsedSms? {
-        val cleaned = body.replace("\u200b", "").replace('：', ':').trim()
-        val match = codePattern.find(cleaned) ?: return null
-        val code = match.groupValues[1].trim().replace('－', '-').replace('—', '-')
-        if (!code.any { it.isDigit() }) return null
+        val cleaned = body.replace(Regex("[\\u200b-\\u200d\\ufeff]"), "").replace('：', ':').trim()
+        val code = pickupCode(cleaned) ?: return null
         val station = (stationPattern.find(cleaned)?.groupValues?.get(1)
+            ?: locatedStation.find(cleaned)?.groupValues?.get(1)
             ?: namedStation.find(cleaned)?.groupValues?.get(1) ?: "待确认站点").trim()
         val companyText = Regex("【([^】]{1,20})】").find(cleaned)?.groupValues?.get(1) ?: cleaned
         val company = companies.firstOrNull { companyText.contains(it) } ?: ""
-        return ParsedSms(station, code, company)
+        val detailAddress = (addressPattern.find(cleaned)?.groupValues?.get(1) ?: "")
+            .replace(Regex("""[ \t]*\r?\n[ \t]*"""), "").trim()
+        return ParsedSms(station, code, company, detailAddress)
     }
 }

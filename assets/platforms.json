@@ -1,0 +1,73 @@
+{
+  "destinations": [
+    {
+      "id": "cainiao_code",
+      "title": "菜鸟身份码",
+      "subtitle": "菜鸟取件",
+      "icon": "cainiao",
+      "apps": [
+        {"package": "com.cainiao.wireless", "uri": "cainiao://router?__linkOptions__=guoguo%3A%2F%2Fgo%2Fstation_code"}
+      ]
+    },
+    {
+      "id": "taobao_code",
+      "title": "淘宝身份码",
+      "subtitle": "淘宝取件",
+      "icon": "identity",
+      "apps": [
+        {"package": "com.taobao.taobao", "uri": "tbopen://m.taobao.com/tbopen/index.html?action=ali.open.nav&module=h5&h5Url=https%3A%2F%2Fpages-fast.m.taobao.com%2Fwow%2Fz%2Funiapp%2F1011717%2Flast-mile-fe%2Fend-collect-platform%2Fidentity-code%3Fx-ssr%3Dtrue"}
+      ],
+      "webUrl": "https://pages-fast.m.taobao.com/wow/z/uniapp/1011717/last-mile-fe/end-collect-platform/identity-code?x-ssr=true"
+    },
+    {
+      "id": "pinduoduo_pickup",
+      "title": "拼多多取件",
+      "subtitle": "身份码与待取件",
+      "icon": "pickup",
+      "apps": [
+        {"package": "com.xunmeng.pinduoduo", "uri": "pinduoduo://com.xunmeng.pinduoduo/mdkd/package"}
+      ],
+      "wechatUrl": "https://mdkd.pinduoduo.com/weixin/package?entry_source=24&p_channel=0"
+    },
+    {
+      "id": "jd_orders",
+      "title": "京东订单",
+      "subtitle": "订单列表",
+      "icon": "shipping",
+      "apps": [
+        {"package": "com.jingdong.app.mall", "uri": "openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D"}
+      ],
+      "webUrl": "https://trade.m.jd.com/order/orderlist_jdm.shtml"
+    },
+    {
+      "id": "taobao_orders",
+      "title": "淘宝订单",
+      "subtitle": "订单列表",
+      "icon": "orders",
+      "apps": [
+        {"package": "com.taobao.taobao", "uri": "tbopen://m.taobao.com/tbopen/index.html?action=ali.open.nav&module=h5&h5Url=https%3A%2F%2Fh5.m.taobao.com%2Fmlapp%2Folist.html"}
+      ],
+      "webUrl": "https://h5.m.taobao.com/mlapp/olist.html"
+    },
+    {
+      "id": "douyin_orders",
+      "title": "抖音订单",
+      "subtitle": "订单列表",
+      "icon": "douyin",
+      "apps": [
+        {"package": "com.ss.android.ugc.aweme", "uri": "snssdk1128://ecom_order_list"},
+        {"package": "com.ss.android.ugc.aweme.mobile", "uri": "snssdk664226://ecom_order_list"}
+      ]
+    },
+    {
+      "id": "xiaohongshu_orders",
+      "title": "小红书订单",
+      "subtitle": "订单列表",
+      "icon": "xiaohongshu",
+      "apps": [
+        {"package": "com.xingin.xhs", "uri": "xhsdiscover://rn/lancer-order/order/list"}
+      ],
+      "webUrl": "https://www.xiaohongshu.com/order/list"
+    }
+  ]
+}

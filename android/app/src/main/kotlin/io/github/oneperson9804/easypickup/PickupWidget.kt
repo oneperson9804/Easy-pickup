@@ -6,13 +6,22 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import java.util.concurrent.Executors
+import kotlin.math.roundToInt
 
 class PickupWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
@@ -25,22 +34,27 @@ class PickupWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action != ACTION_COLLECT) return
-        val id = intent.getStringExtra("parcelId") ?: return
+        if (intent.action != ACTION_ITEM && intent.action != ACTION_COLLECT) return
+        if (intent.getStringExtra("operation") == "open") {
+            context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        }
+        val parcelId = intent.getStringExtra("parcelId") ?: return
         val pending = goAsync()
         executor.execute {
             try {
-                ParcelStore(context.applicationContext).use { it.collect(id) }
+                ParcelStore(context.applicationContext).use { it.collect(parcelId) }
                 refreshAll(context)
                 context.sendBroadcast(Intent(MainActivity.ACTION_RECORDS_CHANGED).setPackage(context.packageName))
             } catch (error: Exception) {
-                Log.e("EasyPickup", "Widget update failed: ${error.javaClass.simpleName}")
+                Log.e("EasyPickup", "Widget update failed: " + error.javaClass.simpleName)
             } finally { pending.finish() }
         }
     }
 
     companion object {
         private const val ACTION_COLLECT = "io.github.oneperson9804.easypickup.WIDGET_COLLECT"
+        private const val ACTION_ITEM = "io.github.oneperson9804.easypickup.WIDGET_ITEM"
         private val executor = Executors.newSingleThreadExecutor()
 
         fun refreshAll(context: Context) {
@@ -48,6 +62,7 @@ class PickupWidget : AppWidgetProvider() {
             manager.getAppWidgetIds(ComponentName(context, PickupWidget::class.java)).forEach { update(context, manager, it) }
         }
 
+        @Suppress("DEPRECATION")
         private fun update(context: Context, manager: AppWidgetManager, id: Int) {
             val views = RemoteViews(context.packageName, R.layout.pickup_widget)
             val open = PendingIntent.getActivity(context, id, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -55,52 +70,105 @@ class PickupWidget : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_empty, open)
             try {
                 ParcelStore(context.applicationContext).use { store ->
-                    val style = store.setting("widgetStyle") as? String ?: "jade"
-                    val showCodes = store.setting("widgetShowCodes") as? Boolean ?: true
-                    val dark = style != "ivory"
-                    val foreground = Color.parseColor(if (dark) "#F2F9FA" else "#173943")
-                    val secondary = Color.parseColor(if (dark) "#B5CED3" else "#56717A")
-                    views.setInt(R.id.widget_root, "setBackgroundResource", if (dark) R.drawable.widget_jade else R.drawable.widget_ivory)
-                    views.setTextColor(R.id.widget_title, foreground)
-                    views.setTextColor(R.id.widget_count, Color.parseColor(if (dark) "#E4C37C" else "#147D88"))
-                    views.setTextColor(R.id.widget_empty, secondary)
-                    views.setTextColor(R.id.widget_footer, secondary)
-                    val (count, items) = store.pending()
+                    val appearance = WidgetAppearance.read(store)
                     val options = manager.getAppWidgetOptions(id)
-                    val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120)
-                    val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 240)
-                    val capacity = ((height - 85) / 57).coerceIn(0, 12)
+                    val portrait = context.resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
+                    val widthKey = if (portrait) AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH else AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH
+                    val heightKey = if (portrait) AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT else AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
+                    val width = options.getInt(widthKey, 260).coerceAtLeast(100)
+                    val height = options.getInt(heightKey, 150).coerceAtLeast(60)
+                    views.setImageViewBitmap(R.id.widget_glass, appearance.background(context, width, height))
+                    views.setTextColor(R.id.widget_title, appearance.foreground)
+                    views.setTextColor(R.id.widget_count, appearance.accent)
+                    views.setTextColor(R.id.widget_empty, appearance.secondary)
+                    val (count, items) = store.pending()
+                    val compact = height < 118
                     views.setTextViewText(R.id.widget_title, "易取件")
-                    views.setTextViewText(R.id.widget_count, "$count 件待取")
-                    views.removeAllViews(R.id.widget_rows)
-                    views.setViewVisibility(R.id.widget_rows, if (capacity > 0 && count > 0) View.VISIBLE else View.GONE)
-                    views.setViewVisibility(R.id.widget_empty, if (capacity == 0 || count == 0) View.VISIBLE else View.GONE)
-                    views.setTextViewText(R.id.widget_empty, if (count == 0) "都取好了，轻装出发" else "打开查看待取件 · 拉高组件显示清单")
-                    for (item in items.take(capacity)) {
-                        val row = RemoteViews(context.packageName, R.layout.pickup_widget_row)
-                        row.setTextViewText(R.id.widget_station, item.station)
-                        row.setTextViewText(R.id.widget_code, if (showCodes) item.code else "取件码已隐藏")
-                        row.setTextColor(R.id.widget_station, secondary)
-                        row.setTextColor(R.id.widget_code, foreground)
-                        row.setFloat(R.id.widget_code, "setTextSize", if (width < 190) 16f else 20f)
-                        row.setOnClickPendingIntent(R.id.widget_row_info, open)
-                        val action = Intent(context, PickupWidget::class.java).apply {
-                            this.action = ACTION_COLLECT
-                            data = Uri.parse("easypickup://widget/collect/${item.id}")
-                            putExtra("parcelId", item.id)
-                        }
-                        row.setOnClickPendingIntent(R.id.widget_collect, PendingIntent.getBroadcast(context, 0, action, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
-                        views.addView(R.id.widget_rows, row)
+                    views.setTextViewText(R.id.widget_count, count.toString() + " 件待取")
+                    views.setViewVisibility(R.id.widget_rows, if (!compact && count > 0) View.VISIBLE else View.GONE)
+                    views.setViewVisibility(R.id.widget_empty, if (compact || count == 0) View.VISIBLE else View.GONE)
+                    views.setTextViewText(R.id.widget_empty, when {
+                        count == 0 -> "都取好了，轻装出发"
+                        else -> if (appearance.showCodes) items.first().code else items.first().station
+                    })
+                    val mutable = if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0
+                    val click = PendingIntent.getBroadcast(context, id, Intent(context, PickupWidget::class.java).apply {
+                        action = ACTION_ITEM
+                        data = Uri.parse("easypickup://widget/items/" + id)
+                    }, PendingIntent.FLAG_UPDATE_CURRENT or mutable)
+                    views.setPendingIntentTemplate(R.id.widget_rows, click)
+                    val adapter = Intent(context, PickupWidgetService::class.java).apply {
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+                        putExtra("width", width)
+                        data = Uri.parse("easypickup://widget/list/" + id + "/" + width)
                     }
-                    views.setTextViewText(R.id.widget_footer, if (count > capacity && capacity > 0) "还有 ${count - capacity} 件 · 点标题查看全部" else "标记已取仅更新本机记录")
+                    views.setRemoteAdapter(R.id.widget_rows, adapter)
                 }
             } catch (error: Exception) {
-                views.removeAllViews(R.id.widget_rows)
+                views.setViewVisibility(R.id.widget_rows, View.GONE)
                 views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
-                views.setTextViewText(R.id.widget_empty, "暂时无法读取记录，请打开易取件")
-                Log.e("EasyPickup", "Widget read failed: ${error.javaClass.simpleName}")
+                views.setTextViewText(R.id.widget_empty, "请打开易取件查看记录")
+                Log.e("EasyPickup", "Widget read failed: " + error.javaClass.simpleName)
             }
             manager.updateAppWidget(id, views)
+            manager.notifyAppWidgetViewDataChanged(id, R.id.widget_rows)
         }
+    }
+}
+
+internal data class WidgetAppearance(val dark: Boolean, val showCodes: Boolean, val opacity: Double) {
+    val foreground = Color.parseColor(if (dark) "#F7FCFD" else "#143A43")
+    val secondary = Color.parseColor(if (dark) "#DEEDF0" else "#365861")
+    val accent = Color.parseColor(if (dark) "#F4DB9C" else "#476C68")
+
+    fun row(context: Context, item: WidgetParcel, width: Int): RemoteViews {
+        return RemoteViews(context.packageName, R.layout.pickup_widget_row).apply {
+            setTextViewText(R.id.widget_station, item.station)
+            setTextViewText(R.id.widget_code, if (showCodes) item.code.ifEmpty { "待补充" } else "取件码已隐藏")
+            setTextColor(R.id.widget_station, secondary)
+            setTextColor(R.id.widget_code, foreground)
+            setTextColor(R.id.widget_collect, accent)
+            setInt(R.id.widget_collect, "setBackgroundResource", if (dark) R.drawable.widget_check_jade else R.drawable.widget_check_ivory)
+            setContentDescription(R.id.widget_collect, "标记" + item.station + "的快递已取")
+            setContentDescription(R.id.widget_row_info, item.station + if (showCodes) "，取件码" + item.code else "，取件码已隐藏")
+            setOnClickFillInIntent(R.id.widget_row_info, Intent().putExtra("operation", "open"))
+            setOnClickFillInIntent(R.id.widget_collect, Intent().putExtra("operation", "collect").putExtra("parcelId", item.id))
+            if (width < 200) setInt(R.id.widget_station, "setMaxLines", 1)
+        }
+    }
+
+    fun background(context: Context, width: Int, height: Int): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val scale = minOf(density, 1024f / width, 2048f / height)
+        val bitmap = Bitmap.createBitmap((width * scale).roundToInt().coerceAtLeast(1), (height * scale).roundToInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val bounds = RectF(.6f * scale, .6f * scale, bitmap.width - .6f * scale, bitmap.height - .6f * scale)
+        val radius = 26f * scale
+        val alpha = (opacity * 255).roundToInt()
+        val colors = if (dark) intArrayOf(
+            Color.argb((alpha + 24).coerceAtMost(255), 55, 119, 130),
+            Color.argb(alpha, 21, 58, 70),
+            Color.argb((alpha + 14).coerceAtMost(255), 12, 38, 50)
+        ) else intArrayOf(
+            Color.argb((alpha + 38).coerceAtMost(255), 248, 255, 255),
+            Color.argb(alpha, 222, 240, 242),
+            Color.argb((alpha + 24).coerceAtMost(255), 208, 229, 233)
+        )
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.shader = LinearGradient(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat(), colors, floatArrayOf(0f, .55f, 1f), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(bounds, radius, radius, paint)
+        paint.shader = LinearGradient(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat(), intArrayOf(Color.argb(130, 215, 244, 245), Color.argb(35, 224, 207, 151), Color.argb(70, 128, 196, 205)), null, Shader.TileMode.CLAMP)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = scale
+        canvas.drawRoundRect(bounds, radius, radius, paint)
+        return bitmap
+    }
+
+    companion object {
+        fun read(store: ParcelStore) = WidgetAppearance(
+            dark = store.setting("widgetStyle") != "ivory",
+            showCodes = store.setting("widgetShowCodes") as? Boolean ?: true,
+            opacity = ((store.setting("widgetOpacity") as? Number)?.toDouble() ?: .42).coerceIn(.18, .9)
+        )
     }
 }

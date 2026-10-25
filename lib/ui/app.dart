@@ -6,6 +6,7 @@ import 'actions.dart';
 import 'code_wallet.dart';
 import 'documents.dart';
 import 'editors.dart';
+import 'feedback_page.dart';
 import 'parcel_pages.dart';
 import 'settings_pages.dart';
 import 'theme.dart';
@@ -118,7 +119,7 @@ class _HomeState extends State<_Home> with WidgetsBindingObserver {
           if (widget.app.busy) const LinearProgressIndicator(minHeight: 2),
           if (widget.app.sharedText != null)
             MaterialBanner(
-              content: const Text('收到分享的取件信息，检查后即可添加'),
+              content: const Text('有待确认的取件信息，检查后即可添加'),
               leading: const Icon(Icons.move_to_inbox_outlined),
               actions: [
                 TextButton(
@@ -282,7 +283,7 @@ class _HomeState extends State<_Home> with WidgetsBindingObserver {
                   context,
                   Icons.chat_bubble_outline_rounded,
                   '反馈意见',
-                  () => runTask(context, widget.app.openFeedback),
+                  () => openPage(context, FeedbackPage(app: widget.app)),
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -327,7 +328,7 @@ class _HomeState extends State<_Home> with WidgetsBindingObserver {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
-                Text('1.0.0', style: Theme.of(context).textTheme.bodySmall),
+                Text(AppController.appVersion, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),

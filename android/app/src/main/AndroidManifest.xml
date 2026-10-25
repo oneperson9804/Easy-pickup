@@ -12,6 +12,9 @@
         <package android:name="com.taobao.taobao" />
         <package android:name="com.xunmeng.pinduoduo" />
         <package android:name="com.jingdong.app.mall" />
+        <package android:name="com.ss.android.ugc.aweme" />
+        <package android:name="com.ss.android.ugc.aweme.mobile" />
+        <package android:name="com.xingin.xhs" />
         <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent>
         <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent>
     </queries>
@@ -21,6 +24,7 @@
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
             <intent-filter><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter>
             <intent-filter><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="image/*" /></intent-filter>
+            <intent-filter><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="image/*" /></intent-filter>
         </activity>
         <receiver android:name="io.github.oneperson9804.easypickup.SmsReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
             <intent-filter><action android:name="android.provider.Telephony.SMS_RECEIVED" /></intent-filter>
@@ -29,6 +33,11 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/pickup_widget_info" />
         </receiver>
+        <service android:name="io.github.oneperson9804.easypickup.PickupWidgetService" android:permission="android.permission.BIND_REMOTEVIEWS" android:exported="false" />
+        <service android:name="io.github.oneperson9804.easypickup.PageCaptureAccessibilityService" android:label="@string/page_capture_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/page_capture_service" />
+        </service>
         <activity android:name="io.github.oneperson9804.easypickup.WidgetConfigActivity" android:exported="true" android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" /></intent-filter>
         </activity>

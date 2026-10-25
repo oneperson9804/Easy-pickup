@@ -12,14 +12,15 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/platform_services.dart';
 import 'models.dart';
-import 'parser.dart';
+import 'import_review.dart';
 import 'repository.dart';
 
 class AppController extends ChangeNotifier {
   AppController({required ParcelRepository repository, required this.platform})
     : _repository = repository;
   static const repositoryUrl = 'https://github.com/oneperson9804/Easy-pickup';
-  static const appVersion = '1.0.0';
+  static const appVersion = '1.1.0';
+  static const feedbackEmail = 'wmiles98@163.com';
   final ParcelRepository _repository;
   final PlatformServices platform;
   AppSnapshot _snapshot = const AppSnapshot();
@@ -32,6 +33,13 @@ class AppController extends ChangeNotifier {
     await _repository.saveDraft(null);
     sharedText = null;
     await reload();
+  }
+
+  Future<void> saveImportDraft(String? text) async {
+    final value = text == null || text.trim().isEmpty ? null : text.trim();
+    await _repository.saveDraft(value);
+    sharedText = value;
+    notifyListeners();
   }
 
   Future<void> discardIncomingShare() async {
@@ -87,6 +95,22 @@ class AppController extends ChangeNotifier {
 
   Future<void> _reload() async {
     _snapshot = await _repository.load();
+    var completed = false;
+    for (final parcel in _snapshot.parcels) {
+      final next = completeNoticeMetadata(parcel, _snapshot.rules);
+      if (next != null) {
+        await _repository.putParcel(next);
+        completed = true;
+      }
+    }
+    if (completed) {
+      _snapshot = await _repository.load();
+      try {
+        await platform.refreshWidgets();
+      } catch (exception) {
+        error = '记录已整理，小组件刷新失败：$exception';
+      }
+    }
     sharedText = await _repository.loadDraft();
     // A second share stays queued until the visible draft is confirmed/ignored.
     if (sharedText != null) {
@@ -115,13 +139,22 @@ class AppController extends ChangeNotifier {
           continue;
         }
         final text = incoming['text'] as String? ?? '';
-        final imagePath = incoming['imagePath'] as String?;
-        final imageText = imagePath == null
-            ? ''
-            : await _recognizeImage(imagePath);
+        final imagePaths = <String>[
+          if (incoming['imagePath'] case final String path) path,
+          ...((incoming['imagePaths'] as List?)?.cast<String>() ??
+              const <String>[]),
+        ];
+        final imageTexts = <String>[];
+        for (final path in imagePaths) {
+          final recognized = await _recognizeImage(path);
+          if (recognized.trim().isEmpty) {
+            throw const FormatException('有图片未识别出文字，原图片已保留，可重试或重新分享清晰图片');
+          }
+          imageTexts.add(recognized);
+        }
         final draft = [
           if (text.trim().isNotEmpty) text,
-          if (imageText.trim().isNotEmpty) imageText,
+          ...imageTexts,
         ].join('\n\n');
         if (draft.isNotEmpty) {
           await _repository.saveDraft(draft, incomingId: id);
@@ -250,7 +283,10 @@ class AppController extends ChangeNotifier {
         next.reminderWeekdays.any((d) => d < 1 || d > 7) ||
         !['system', 'light', 'dark'].contains(next.themeMode) ||
         !['arrival', 'codeAsc', 'codeDesc'].contains(next.sortMode) ||
-        !['jade', 'ivory'].contains(next.widgetStyle)) {
+        !['jade', 'ivory'].contains(next.widgetStyle) ||
+        !next.widgetOpacity.isFinite ||
+        next.widgetOpacity < .18 ||
+        next.widgetOpacity > .9) {
       throw const FormatException('提醒时间或短信导入范围不正确');
     }
     if (next.reminderEnabled && next.reminderWeekdays.isEmpty) {
@@ -262,38 +298,25 @@ class AppController extends ChangeNotifier {
     String text, {
     String source = 'paste',
   }) async {
-    final chunks = splitImportText(text);
     final old = await _repository.load();
-    final existing = old.parcels
-        .map((p) => p.sourceKey)
-        .whereType<String>()
-        .toSet();
+    final preview = reviewImport(
+      text,
+      existing: old.parcels,
+      rules: rules,
+      source: source,
+    );
     final additions = <Parcel>[];
     var duplicates = 0, unrecognized = 0;
-    for (final chunk in chunks) {
-      final parsed = parseParcelText(chunk, rules: rules);
-      if (parsed == null) {
+    for (final item in preview) {
+      if (item.parcel == null) {
         unrecognized++;
         continue;
       }
-      final key = 'text:${chunk.trim().replaceAll(RegExp(r'\s+'), ' ')}';
-      if (existing.contains(key)) {
+      if (item.duplicate != null) {
         duplicates++;
         continue;
       }
-      existing.add(key);
-      additions.add(
-        Parcel(
-          id: newId(),
-          station: parsed.station,
-          code: parsed.code,
-          company: parsed.company,
-          rawText: parsed.rawText,
-          arrivedAt: DateTime.now(),
-          source: source,
-          sourceKey: key,
-        ),
-      );
+      additions.add(item.parcel!);
     }
     if (additions.isNotEmpty) {
       await _repository.merge(
@@ -306,6 +329,26 @@ class AppController extends ChangeNotifier {
       duplicates: duplicates,
       unrecognized: unrecognized,
     );
+  }
+
+  List<ImportCandidate> previewImport(String text, {String source = 'paste'}) =>
+      reviewImport(
+        text,
+        existing: _snapshot.parcels,
+        rules: rules,
+        source: source,
+      );
+
+  Future<int> importReviewed(List<Parcel> selected, String remaining) async {
+    for (final parcel in selected) {
+      _validateParcel(parcel);
+    }
+    final result = await _repository.merge(
+      AppSnapshot(parcels: selected, settings: settings),
+    );
+    await saveImportDraft(remaining);
+    await _changed();
+    return result.added;
   }
 
   Future<ImportResult> importSms() async {
@@ -386,9 +429,28 @@ class AppController extends ChangeNotifier {
 
   Future<String?> recognizeScreenshot() async {
     if (kIsWeb) throw UnsupportedError('请在 Android 或 iOS App 中使用本机截图识别');
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked == null) return null;
-    return _recognizeImage(picked.path);
+    final picked = await ImagePicker().pickMultiImage();
+    if (picked.isEmpty) return null;
+    final parts = <String>[];
+    var failed = 0;
+    for (final image in picked) {
+      try {
+        final text = await _recognizeImage(image.path);
+        if (text.trim().isNotEmpty) {
+          parts.add(text);
+        } else {
+          failed++;
+        }
+      } catch (_) {
+        failed++;
+      }
+    }
+    if (parts.isEmpty) throw StateError('图片中未能识别出文字，请检查清晰度后重试');
+    if (failed > 0) {
+      error = '$failed 张图片未能识别出文字，请单独检查后重新选择';
+      notifyListeners();
+    }
+    return parts.join('\n\n');
   }
 
   Future<String> _recognizeImage(String path) async {
@@ -558,8 +620,16 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<void> openFeedback() =>
-      _open('$repositoryUrl/issues/new?template=bug_report.yml');
+  static Uri feedbackUri(String message) => Uri(
+    scheme: 'mailto',
+    path: feedbackEmail,
+    query:
+        'subject=${Uri.encodeComponent('易取件 $appVersion 使用反馈')}'
+        '&body=${Uri.encodeComponent(message)}',
+  );
+
+  Future<bool> openFeedback({String message = ''}) =>
+      launchUrl(feedbackUri(message), mode: LaunchMode.externalApplication);
   Future<void> openRepository() => _open(repositoryUrl);
 
   @override

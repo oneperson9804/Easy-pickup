@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart' hide Barcode;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_controller.dart';
 import '../core/models.dart';
+import '../core/platform_catalog.dart';
 import 'actions.dart';
 import 'theme.dart';
 
@@ -27,66 +29,29 @@ class CodeWalletPage extends StatelessWidget {
         ),
       ),
       const SectionTitle('官方取件入口', subtitle: '打开对应平台，动态身份码由官方提供'),
-      LayoutBuilder(
-        builder: (context, constraints) => Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _official(
-              context,
-              'cainiao_code',
-              '菜鸟身份码',
-              '菜鸟',
-              Icons.grass_rounded,
-              constraints.maxWidth,
+      FutureBuilder<List<OfficialDestination>>(
+        future: OfficialDestination.catalog,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Text('平台入口暂时无法读取，请重新打开易取件。');
+          }
+          if (!snapshot.hasData) return const Text('正在读取平台入口…');
+          return LayoutBuilder(
+            builder: (context, constraints) => Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final destination in snapshot.data!)
+                  _official(context, destination, constraints.maxWidth),
+              ],
             ),
-            _official(
-              context,
-              'taobao_code',
-              '淘宝身份码',
-              '淘宝',
-              Icons.shopping_bag_outlined,
-              constraints.maxWidth,
-            ),
-            _official(
-              context,
-              'pinduoduo_code',
-              '拼多多身份码',
-              '拼多多',
-              Icons.qr_code_rounded,
-              constraints.maxWidth,
-            ),
-            _official(
-              context,
-              'pinduoduo_pickup',
-              '拼多多待取件',
-              '取件列表',
-              Icons.inventory_2_outlined,
-              constraints.maxWidth,
-            ),
-            _official(
-              context,
-              'jd_orders',
-              '京东订单',
-              '订单列表',
-              Icons.local_shipping_outlined,
-              constraints.maxWidth,
-            ),
-            _official(
-              context,
-              'taobao_orders',
-              '淘宝订单',
-              '订单列表',
-              Icons.receipt_long_outlined,
-              constraints.maxWidth,
-            ),
-          ],
-        ),
+          );
+        },
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
         child: Text(
-          '官方身份码在对应平台查看和使用。本地码夹用于保存固定的二维码与条码。',
+          '在平台取件页展开站点、取件码与包裹详情，通过截图、分享或粘贴带回核对。码夹还可以保存常用二维码与条码。',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
@@ -166,38 +131,140 @@ class CodeWalletPage extends StatelessWidget {
 
   Widget _official(
     BuildContext context,
-    String id,
-    String title,
-    String subtitle,
-    IconData icon,
+    OfficialDestination destination,
     double width,
   ) => SizedBox(
     width: (width - 10) / 2,
     child: Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        onTap: () => runTask(context, () async {
-          final opened = await app.platform.openOfficial(id);
-          if (!opened && context.mounted) {
-            notice(context, '未能打开对应平台，请检查是否已安装官方 App。');
-          }
-        }),
+        onTap: () => _openOfficial(context, destination),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: Theme.of(context).colorScheme.primary),
+              SizedBox(
+                height: 48,
+                child: Row(
+                  children: [
+                    Icon(
+                      _platformIcon(destination.icon),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const Spacer(),
+                    if (destination.webUrl != null ||
+                        destination.wechatUrl != null)
+                      PopupMenuButton<String>(
+                        tooltip: '其他打开方式',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        onSelected: (value) => runTask(context, () async {
+                          if (value == 'web') {
+                            await _openWeb(destination.webUrl!);
+                          } else {
+                            await _copyWechat(context, destination.wechatUrl!);
+                          }
+                        }),
+                        itemBuilder: (_) => [
+                          if (destination.webUrl != null)
+                            const PopupMenuItem(
+                              value: 'web',
+                              child: Text('打开官方网页'),
+                            ),
+                          if (destination.wechatUrl != null)
+                            const PopupMenuItem(
+                              value: 'wechat',
+                              child: Text('复制微信取件链接'),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 14),
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                destination.title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
-              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                destination.subtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ),
       ),
     ),
   );
+
+  IconData _platformIcon(String value) => switch (value) {
+    'cainiao' => Icons.grass_rounded,
+    'identity' => Icons.qr_code_rounded,
+    'pickup' => Icons.inventory_2_outlined,
+    'shipping' => Icons.local_shipping_outlined,
+    'douyin' => Icons.music_note_rounded,
+    'xiaohongshu' => Icons.menu_book_rounded,
+    _ => Icons.receipt_long_outlined,
+  };
+
+  Future<void> _openOfficial(
+    BuildContext context,
+    OfficialDestination destination,
+  ) => runTask(context, () async {
+    final opened = await app.platform.openOfficial(destination.id);
+    if (opened.opened || !context.mounted) return;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('打开${destination.title}'),
+        content: Text(
+          destination.wechatUrl != null
+              ? '系统未能打开这个取件入口。你可以从拼多多中进入取件页，或复制链接后在微信中打开。'
+              : '系统未能打开这个页面入口。你可以从对应平台中进入取件页或订单列表${destination.webUrl != null ? '，也可以使用官方网页' : ''}。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+          if (destination.webUrl != null)
+            FilledButton(
+              onPressed: () => Navigator.pop(context, 'web'),
+              child: const Text('官方网页'),
+            ),
+          if (destination.wechatUrl != null)
+            FilledButton(
+              onPressed: () => Navigator.pop(context, 'wechat'),
+              child: const Text('复制微信链接'),
+            ),
+        ],
+      ),
+    );
+    if (choice == 'web') {
+      await _openWeb(destination.webUrl!);
+    } else if (choice == 'wechat' && context.mounted) {
+      await _copyWechat(context, destination.wechatUrl!);
+    }
+  });
+
+  Future<void> _openWeb(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.inAppBrowserView,
+    )) {
+      throw Exception('系统未能打开官方网页，请稍后重试。');
+    }
+  }
+
+  Future<void> _copyWechat(BuildContext context, Uri url) async {
+    await Clipboard.setData(ClipboardData(text: url.toString()));
+    if (context.mounted) notice(context, '取件链接已复制，请在微信中打开。');
+  }
 
   Future<void> _addMenu(BuildContext context) async {
     final choice = await showModalBottomSheet<String>(

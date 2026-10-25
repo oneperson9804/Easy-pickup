@@ -1,7 +1,17 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="57dp" android:orientation="horizontal" android:gravity="center_vertical">
-    <LinearLayout android:id="@+id/widget_row_info" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical">
-        <TextView android:id="@+id/widget_station" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="待取站点" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
-        <TextView android:id="@+id/widget_code" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="取件码" android:textStyle="bold" android:textSize="20sp" android:maxLines="1" android:ellipsize="end" />
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="76dp" android:orientation="horizontal" android:gravity="center_vertical">
+    <LinearLayout android:id="@+id/widget_row_info" android:layout_width="0dp" android:layout_weight="1"
+        android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical" android:paddingEnd="4dp">
+        <TextView android:id="@+id/widget_station" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="取件站点" android:textSize="11sp" android:maxLines="2" android:ellipsize="end"
+            android:textColor="#D5EBEF" android:shadowColor="#40102024" android:shadowRadius="1" />
+        <TextView android:id="@+id/widget_code" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="A3-2-4182" android:textStyle="bold" android:textSize="24sp" android:fontFamily="sans-serif-medium"
+            android:textColor="#F7FCFD" android:maxLines="1" android:ellipsize="end"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="14sp" android:autoSizeMaxTextSize="24sp"
+            android:autoSizeStepGranularity="1sp" android:shadowColor="#60102024" android:shadowRadius="1.5" />
     </LinearLayout>
-    <Button android:id="@+id/widget_collect" android:layout_width="52dp" android:layout_height="48dp" android:text="已取" android:contentDescription="标记本件已取" android:textSize="12sp" android:textColor="#173D32" android:backgroundTint="#E2C683" android:padding="0dp" />
+    <TextView android:id="@+id/widget_collect" android:layout_width="48dp" android:layout_height="48dp"
+        android:text="✓" android:gravity="center" android:textSize="23sp" android:textColor="#F5DEA1"
+        android:contentDescription="标记本件已取" android:background="@drawable/widget_check_jade" />
 </LinearLayout>

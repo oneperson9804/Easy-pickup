@@ -36,7 +36,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         sharedIntentStaged = savedInstanceState?.getBoolean("sharedIntentStaged") ?: false
-        if (!sharedIntentStaged && intent?.action == Intent.ACTION_SEND && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) stageShare(intent)
+        if (!sharedIntentStaged && intent?.action in listOf(Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE) && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) stageShare(intent)
         super.onCreate(savedInstanceState)
     }
 
@@ -48,7 +48,7 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.action == Intent.ACTION_SEND) {
+        if (intent.action in listOf(Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE)) {
             sharedIntentStaged = false
             stageShare(intent)
         }
@@ -73,6 +73,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        PageCaptureBridge.register(this, flutterEngine.dartExecutor.binaryMessenger)
         platformChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "easy_pickup/platform")
         platformChannel!!.setMethodCallHandler { call, result ->
             try {

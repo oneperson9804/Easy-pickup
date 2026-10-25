@@ -242,14 +242,23 @@ void main() {
     await _tap(
       tester,
       find.byKey(const ValueKey('confirm-import')),
+      until: () => find
+          .byKey(const ValueKey('save-reviewed-import'))
+          .evaluate()
+          .isNotEmpty,
+    );
+    expect(app.parcels, isEmpty);
+    await _tap(
+      tester,
+      find.byKey(const ValueKey('save-reviewed-import')),
       until: () =>
           app.parcels.length == 1 &&
-          find.textContaining('1 条未识别，分享草稿已保留').evaluate().isNotEmpty,
+          find.textContaining('其余文字已保留为草稿').evaluate().isNotEmpty,
     );
     expect(app.pending.single.code, '6-600');
-    expect(app.sharedText, draft);
-    expect(await tester.runAsync(repository.loadDraft), draft);
-    expect(find.textContaining('1 条未识别，分享草稿已保留'), findsOneWidget);
+    expect(app.sharedText, '明天请到食堂参加志愿活动');
+    expect(await tester.runAsync(repository.loadDraft), app.sharedText);
+    expect(find.textContaining('其余文字已保留为草稿'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
@@ -264,7 +273,11 @@ Future<void> _tap(
   });
   // Complete route animations before waiting for SQLite work that may start
   // after DialogRoute.completed. This mirrors frames progressing on a device.
-  await tester.pumpAndSettle();
+  if (until == null) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump(const Duration(milliseconds: 500));
+  }
   if (until != null) {
     final deadline = Stopwatch()..start();
     do {

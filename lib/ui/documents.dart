@@ -23,7 +23,7 @@ class HelpPage extends StatelessWidget {
         ),
         _Question(
           '怎样整理来自不同平台的取件信息？',
-          '易取件根据你选择的短信、文字、截图和手动输入整理记录。官方订单可从码夹中的平台入口查看；手动添加适合补充其他取件信息。',
+          '在取件码夹打开平台，展开包裹的取件详情，保留站点和取件码。可选择多张截图、粘贴文字或通过系统分享带回，逐条核对后保存。Android 还可在“添加 → 识别平台页面”开启主动页面识别，滚动后可继续读取。',
         ),
         _Question(
           'Android 短信导入不成功怎么办？',
@@ -39,7 +39,7 @@ class HelpPage extends StatelessWidget {
         ),
         _Question(
           '重复的通知会变成多个包裹吗？',
-          '同一来源短信会按发送方、时间和内容去重。不同来源或多次手动录入的相同取件码可能代表不同包裹，导入后请检查站点和记录；不需要的记录可以移入回收站。',
+          '同一短信按发送方、时间和内容去重。粘贴与图片导入会核对近七天的相同通知，以及待取记录的站点、取件码和公司。相似记录默认不勾选；确认是另一件包裹时可勾选保存，包裹尾号不同会分别保留。',
         ),
         _Question(
           '站点或快递公司识别不准怎么办？',
@@ -55,7 +55,7 @@ class HelpPage extends StatelessWidget {
         ),
         _Question(
           '小组件可以调整大小吗？',
-          'Android 添加后长按组件，拖动控制点调整宽高；可用尺寸取决于手机桌面。iOS 在系统支持的小、中、大规格中选择。组件默认不显示手机号和短信全文，取件码可以在配置中隐藏。',
+          'Android 添加后长按组件，拖动控制点调整宽高；可用尺寸取决于手机桌面。iOS 在系统支持的小、中、大规格中选择。设置中可选择青色或雾白玻璃外观、调整透明度和隐藏取件码。',
         ),
         _Question(
           '怎样备份或迁移取件记录？',
@@ -67,7 +67,7 @@ class HelpPage extends StatelessWidget {
         ),
         _Question(
           '如何反馈识别错误？',
-          '通过菜单中的反馈意见打开项目 Issues。描述发生步骤、手机系统版本和应用版本；提供样例前请自行遮去手机号、完整取件码、住址等个人信息。',
+          '通过菜单中的反馈意见撰写邮件，收件邮箱为 wmiles98@163.com，也可以复制邮箱发送。描述操作步骤、手机型号和系统版本；提供样例前请遮去手机号、有效取件码和完整住址。',
         ),
       ],
     ),
@@ -108,7 +108,7 @@ class DocumentPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '适用版本：易取件 1.0.0\n更新日期：2026年10月25日',
+          '适用版本：易取件 ${AppController.appVersion}\n更新日期：2026年10月25日',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         ..._sections(privacy).map(
@@ -129,11 +129,11 @@ class DocumentPage extends StatelessWidget {
           ),
           (
             '2. 权限与本地识别',
-            'Android 短信权限用于读取取件通知和接收新通知，不用于发送短信。相机用于你主动开启的扫码；照片和文件由系统选择器提供，用于截图识别、静态码导入和备份恢复。通知权限用于你开启的本地提醒。剪贴板只在点击读取按钮后访问。图片和通知文字在本机处理。拒绝可选权限后，你仍可手动管理记录。',
+            'Android 短信权限用于读取取件通知和接收新通知，不用于发送短信。相机用于你主动开启的扫码；照片和文件由系统选择器提供，用于截图识别、静态码导入和备份恢复。通知权限用于你开启的本地提醒。剪贴板只在点击读取按钮后访问。可选的 Android 页面识别需要你同意说明并在系统开启辅助功能，仅在所选平台中按“读取本页”或“截图”后获取当前可见内容，文字和图片进入待确认草稿。会话可随时结束，辅助功能可在系统关闭。图片和通知文字在本机处理。',
           ),
           (
             '3. 网络与第三方服务',
-            '检查更新时，应用会向 GitHub 请求公开版本信息；反馈、源码和官方取件入口通过对应外部服务打开。截图识别和 Android 扫码使用 Google ML Kit 端侧组件，图片、文字和识别结果在设备上处理；该组件可能按官方政策发送设备、应用版本、性能和错误等诊断信息。外部服务按各自政策处理网络连接信息和你提交的内容。',
+            '检查更新时，应用会向 GitHub 请求公开版本信息；源码和官方取件入口通过对应外部服务打开。反馈通过你选择的邮件应用发送到 wmiles98@163.com，发送前由你确认正文和附件。截图识别和 Android 扫码使用 Google ML Kit 端侧组件，图片、文字和识别结果在设备上处理；该组件可能按官方政策发送设备、应用版本、性能和错误等诊断信息。外部服务按各自政策处理网络连接信息和你提交的内容。',
           ),
           (
             '4. 桌面小组件与分享',
@@ -206,7 +206,7 @@ class AboutPage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Easy pickup · 1.0.0',
+          'Easy pickup · ${AppController.appVersion}',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall,
         ),
@@ -229,7 +229,7 @@ class AboutPage extends StatelessWidget {
                 onTap: () => showLicensePage(
                   context: context,
                   applicationName: '易取件',
-                  applicationVersion: '1.0.0',
+                  applicationVersion: AppController.appVersion,
                   applicationLegalese: '完整项目许可证与素材说明见源码仓库。',
                 ),
               ),

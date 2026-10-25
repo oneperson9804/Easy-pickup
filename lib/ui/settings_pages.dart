@@ -4,6 +4,7 @@ import '../core/models.dart';
 import 'actions.dart';
 import 'editors.dart';
 import 'theme.dart';
+import 'page_capture.dart';
 
 void openPage(BuildContext context, Widget page) =>
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -76,6 +77,14 @@ class SettingsPage extends StatelessWidget {
                       openPage(context, RecognitionRulesPage(app: app)),
                 ),
                 if (supportsSms) ...[
+                  const Divider(indent: 58),
+                  ListTile(
+                    leading: const Icon(Icons.screen_search_desktop_rounded),
+                    title: const Text('识别平台页面'),
+                    subtitle: const Text('选择平台，主动读取当前可见取件信息'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => openPage(context, const PageCapturePage()),
+                  ),
                   const Divider(indent: 58),
                   ListTile(
                     leading: const Icon(Icons.sms_outlined),
@@ -688,6 +697,18 @@ class _PermissionsPageState extends State<PermissionsPage>
             const Text('按使用需要开启权限。短信用于整理取件通知，相机用于扫码，通知用于取件提醒；手动添加始终可用。'),
             const SectionTitle('功能与权限'),
             if (supportsSms)
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.screen_search_desktop_rounded),
+                  title: const Text('平台页面识别'),
+                  subtitle: const Text(
+                    '辅助功能用于你主动读取的所选平台页面；内容进入草稿，核对后保存。可随时结束会话或在系统关闭。',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => openPage(context, const PageCapturePage()),
+                ),
+              ),
+            if (supportsSms)
               _permission(
                 context,
                 '短信读取与接收',
@@ -861,163 +882,299 @@ class _PermissionsPageState extends State<PermissionsPage>
   );
 }
 
-class WidgetSettingsPage extends StatelessWidget {
+class WidgetSettingsPage extends StatefulWidget {
   const WidgetSettingsPage({super.key, required this.app});
   final AppController app;
   @override
+  State<WidgetSettingsPage> createState() => _WidgetSettingsPageState();
+}
+
+class _WidgetSettingsPageState extends State<WidgetSettingsPage> {
+  double? _previewOpacity;
+  AppController get app => widget.app;
+
+  @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: app,
-    builder: (context, _) => PageFrame(
-      title: '桌面小组件',
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text('把取件码放到桌面', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          const Text('打开桌面即可查看待取件，并把取完的记录标记为已取。'),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: app.settings.widgetStyle == 'ivory'
-                  ? const Color(0xFFF1F7F7)
-                  : const Color(0xFF12313B),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: gold.withValues(alpha: .55)),
-            ),
-            child: DefaultTextStyle(
-              style: TextStyle(
-                color: app.settings.widgetStyle == 'ivory'
-                    ? const Color(0xFF12313B)
-                    : const Color(0xFFEAF4F5),
+    builder: (context, _) {
+      final light = app.settings.widgetStyle == 'ivory';
+      final opacity = _previewOpacity ?? app.settings.widgetOpacity;
+      final foreground = light
+          ? const Color(0xFF143A43)
+          : const Color(0xFFF7FCFD);
+      final secondary = light
+          ? const Color(0xFF365861)
+          : const Color(0xFFDEEDF0);
+      return PageFrame(
+        title: '桌面小组件',
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text('取件码，抬眼即见', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            const Text('站点、取件码与待取数量。轻点勾选，记录已取。'),
+            const SizedBox(height: 22),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(36),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF8EADAA),
+                    Color(0xFF3E696D),
+                    Color(0xFFD8CDAF),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.grass_rounded, size: 19, color: gold),
-                      const SizedBox(width: 8),
-                      const Text('易取件'),
-                      const Spacer(),
-                      Text('${app.pending.length} 件待取'),
-                    ],
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: light
+                        ? [
+                            const Color(
+                              0xFFF8FFFF,
+                            ).withValues(alpha: (opacity + .15).clamp(0, 1)),
+                            const Color(0xFFDEF0F2).withValues(alpha: opacity),
+                            const Color(
+                              0xFFD0E5E9,
+                            ).withValues(alpha: (opacity + .09).clamp(0, 1)),
+                          ]
+                        : [
+                            const Color(
+                              0xFF377782,
+                            ).withValues(alpha: (opacity + .09).clamp(0, 1)),
+                            const Color(0xFF153A46).withValues(alpha: opacity),
+                            const Color(
+                              0xFF0C2632,
+                            ).withValues(alpha: (opacity + .05).clamp(0, 1)),
+                          ],
                   ),
-                  const SizedBox(height: 22),
-                  if (app.pending.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 15),
-                      child: Text(
-                        '取件都安排好了',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    )
-                  else
-                    ...app.pending
-                        .take(3)
-                        .map(
-                          (p) => Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        p.station,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      const SizedBox(height: 5),
-                                      Text(
-                                        app.settings.widgetShowCodes
-                                            ? (p.code.isEmpty ? '待补充' : p.code)
-                                            : '取件码已隐藏',
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.check_circle_outline_rounded,
-                                  color: gold,
-                                ),
-                              ],
+                  border: Border.all(
+                    color: const Color(0xFFD7F4F5).withValues(alpha: .5),
+                  ),
+                ),
+                child: DefaultTextStyle(
+                  style: TextStyle(color: foreground),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            '易取件',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '样式预览 · 桌面实际内容会随尺寸调整',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-          const SectionTitle('显示设置'),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'jade', label: Text('玄青金雷')),
-              ButtonSegment(value: 'ivory', label: Text('竹露白')),
-            ],
-            selected: {app.settings.widgetStyle},
-            onSelectionChanged: (value) => runTask(
-              context,
-              () => app.updateSettings(
-                app.settings.copyWith(widgetStyle: value.first),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: SwitchListTile(
-              title: const Text('在桌面显示取件码'),
-              subtitle: const Text('关闭后只显示站点与待取数量'),
-              value: app.settings.widgetShowCodes,
-              onChanged: (value) => runTask(
-                context,
-                () => app.updateSettings(
-                  app.settings.copyWith(widgetShowCodes: value),
+                          const Spacer(),
+                          Text(
+                            '${app.pending.length} 件待取',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: light
+                                  ? const Color(0xFF476C68)
+                                  : const Color(0xFFF4DB9C),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (app.pending.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            '都取好了，轻装出发',
+                            style: TextStyle(color: secondary, fontSize: 16),
+                          ),
+                        )
+                      else
+                        ...app.pending
+                            .take(3)
+                            .map(
+                              (p) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            p.station,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: secondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            app.settings.widgetShowCodes
+                                                ? (p.code.isEmpty
+                                                      ? '待补充'
+                                                      : p.code)
+                                                : '取件码已隐藏',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            (light
+                                                    ? Colors.white
+                                                    : const Color(0xFF18313B))
+                                                .withValues(alpha: .44),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: gold.withValues(alpha: .44),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.check_rounded,
+                                        color: light
+                                            ? const Color(0xFF476C68)
+                                            : const Color(0xFFF4DB9C),
+                                        size: 23,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 22),
-          FilledButton.icon(
-            key: const ValueKey('pin-widget'),
-            onPressed: () => runTask(context, () async {
-              final requested = await app.platform.pinWidget();
-              if (context.mounted) {
-                notice(
+            const SizedBox(height: 10),
+            Text(
+              '桌面预览 · 清单可滚动查看',
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+            const SectionTitle('玻璃外观'),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'jade', label: Text('灵青玻璃')),
+                ButtonSegment(value: 'ivory', label: Text('雾白玻璃')),
+              ],
+              selected: {app.settings.widgetStyle},
+              onSelectionChanged: (value) => runTask(
+                context,
+                () => app.updateSettings(
+                  app.settings.copyWith(widgetStyle: value.first),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(child: Text('背景浓度')),
+                        Text(
+                          '${(opacity * 100).round()}%',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      key: const ValueKey('widget-opacity'),
+                      min: .18,
+                      max: .9,
+                      divisions: 24,
+                      value: opacity,
+                      label: '${(opacity * 100).round()}%',
+                      onChanged: (value) =>
+                          setState(() => _previewOpacity = value),
+                      onChangeEnd: (value) => runTask(context, () async {
+                        await app.updateSettings(
+                          app.settings.copyWith(widgetOpacity: value),
+                        );
+                        if (mounted) setState(() => _previewOpacity = null);
+                      }),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        '透出壁纸色彩，按桌面背景调节清晰度。',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Card(
+              child: SwitchListTile(
+                title: const Text('在桌面显示取件码'),
+                subtitle: const Text('站点与待取数量始终可见'),
+                value: app.settings.widgetShowCodes,
+                onChanged: (value) => runTask(
                   context,
-                  requested ? '请在系统弹窗中确认添加' : '请长按桌面空白处，在小组件列表中选择易取件',
-                );
-              }
-            }),
-            icon: const Icon(Icons.add_to_home_screen_rounded),
-            label: const Text('添加到桌面'),
-          ),
-          const SectionTitle('调整大小'),
-          Text(
-            supportsSms
-                ? '添加后长按桌面小组件，拖动边框控制点调整宽高。内容会随尺寸显示为数量卡或取件清单；不同桌面支持的网格尺寸可能不同。'
-                : '在系统小组件列表中选择小、中或大尺寸。可用尺寸由 iOS 系统管理。',
-          ),
-          const SizedBox(height: 16),
-          const Text('桌面上“标记已取”只改变本机记录，不会向快递公司或驿站确认出库。手机号和短信全文不会展示在组件上。'),
-        ],
-      ),
-    ),
+                  () => app.updateSettings(
+                    app.settings.copyWith(widgetShowCodes: value),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              key: const ValueKey('pin-widget'),
+              onPressed: () => runTask(context, () async {
+                final requested = await app.platform.pinWidget();
+                if (context.mounted) {
+                  notice(
+                    context,
+                    requested ? '请在系统弹窗中确认添加' : '请长按桌面空白处，在小组件列表中选择易取件',
+                  );
+                }
+              }),
+              icon: const Icon(Icons.add_to_home_screen_rounded),
+              label: const Text('添加到桌面'),
+            ),
+            const SectionTitle('调整大小'),
+            Text(
+              supportsSms
+                  ? '添加后长按小组件，拖动边框调整宽高。清单可上下滑动，轻点标题进入易取件。'
+                  : '在系统小组件列表中选择小、中或大尺寸，轻点勾选记录已取。',
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '“已取”记录保存在易取件中。桌面仅展示站点与取件码。',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      );
+    },
   );
 }

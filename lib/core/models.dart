@@ -145,6 +145,7 @@ class AppSettings {
     this.stationOrder = const [],
     this.widgetStyle = 'jade',
     this.widgetShowCodes = true,
+    this.widgetOpacity = .42,
     this.reminderEnabled = false,
     this.reminderHour = 18,
     this.reminderMinute = 0,
@@ -154,6 +155,7 @@ class AppSettings {
   final String themeMode, sortMode, widgetStyle;
   final List<String> stationOrder;
   final bool widgetShowCodes, reminderEnabled;
+  final double widgetOpacity;
   final int reminderHour, reminderMinute, smsLookbackDays;
   final List<int> reminderWeekdays;
   AppSettings copyWith({
@@ -162,6 +164,7 @@ class AppSettings {
     List<String>? stationOrder,
     String? widgetStyle,
     bool? widgetShowCodes,
+    double? widgetOpacity,
     bool? reminderEnabled,
     int? reminderHour,
     int? reminderMinute,
@@ -173,6 +176,7 @@ class AppSettings {
     stationOrder: stationOrder ?? this.stationOrder,
     widgetStyle: widgetStyle ?? this.widgetStyle,
     widgetShowCodes: widgetShowCodes ?? this.widgetShowCodes,
+    widgetOpacity: widgetOpacity ?? this.widgetOpacity,
     reminderEnabled: reminderEnabled ?? this.reminderEnabled,
     reminderHour: reminderHour ?? this.reminderHour,
     reminderMinute: reminderMinute ?? this.reminderMinute,
@@ -185,6 +189,7 @@ class AppSettings {
     'stationOrder': stationOrder,
     'widgetStyle': widgetStyle,
     'widgetShowCodes': widgetShowCodes,
+    'widgetOpacity': widgetOpacity,
     'reminderEnabled': reminderEnabled,
     'reminderHour': reminderHour,
     'reminderMinute': reminderMinute,
@@ -197,6 +202,10 @@ class AppSettings {
     stationOrder: (m['stationOrder'] as List?)?.cast<String>() ?? const [],
     widgetStyle: m['widgetStyle'] as String? ?? 'jade',
     widgetShowCodes: m['widgetShowCodes'] as bool? ?? true,
+    widgetOpacity: ((m['widgetOpacity'] as num?)?.toDouble() ?? .42).clamp(
+      .18,
+      .9,
+    ),
     reminderEnabled: m['reminderEnabled'] as bool? ?? false,
     reminderHour: (m['reminderHour'] as num?)?.toInt() ?? 18,
     reminderMinute: (m['reminderMinute'] as num?)?.toInt() ?? 0,

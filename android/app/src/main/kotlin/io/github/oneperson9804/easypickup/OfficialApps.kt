@@ -1,31 +1,59 @@
 package io.github.oneperson9804.easypickup
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import io.flutter.FlutterInjector
+import org.json.JSONObject
 
 object OfficialApps {
-    data class Destination(val packageName: String, val uri: String)
-    private const val TAOBAO_BASE = "taobao://m.taobao.com/tbopen/index.html?h5Url="
-    private val destinations = mapOf(
-        "cainiao_code" to Destination("com.cainiao.wireless", "cainiao://desktop/station_code"),
-        "taobao_code" to Destination("com.taobao.taobao", TAOBAO_BASE + "https%3A%2F%2Fpages-fast.m.taobao.com%2Fwow%2Fz%2Funiapp%2F1011717%2Flast-mile-fe%2Fend-collect-platform%2Fidentity-code%3Fx-ssr%3Dtrue"),
-        "pinduoduo_code" to Destination("com.xunmeng.pinduoduo", "pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11"),
-        "pinduoduo_pickup" to Destination("com.xunmeng.pinduoduo", "pinduoduo://com.xunmeng.pinduoduo/mdkd/package"),
-        "jd_orders" to Destination("com.jingdong.app.mall", "openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D"),
-        "taobao_orders" to Destination("com.taobao.taobao", TAOBAO_BASE + "https%3A%2F%2Fh5.m.taobao.com%2Fawp%2Fbase%2Forder%2Flistul.htm")
-    )
+    private data class AppRoute(val packageName: String, val uri: String)
+    private data class Destination(val id: String, val apps: List<AppRoute>)
 
-    fun available(context: Context): List<String> = destinations.filter { (_, dest) ->
-        context.packageManager.resolveActivity(Intent(Intent.ACTION_VIEW, Uri.parse(dest.uri)).setPackage(dest.packageName), 0) != null
-    }.keys.toList()
+    private fun destinations(context: Context): List<Destination> {
+        val key = FlutterInjector.instance().flutterLoader().getLookupKeyForAsset("assets/platforms.json")
+        val json = context.assets.open(key).bufferedReader().use { JSONObject(it.readText()) }
+        val entries = json.getJSONArray("destinations")
+        return (0 until entries.length()).map { index ->
+            val item = entries.getJSONObject(index)
+            val apps = item.getJSONArray("apps")
+            Destination(item.getString("id"), (0 until apps.length()).map { routeIndex ->
+                val route = apps.getJSONObject(routeIndex)
+                AppRoute(route.getString("package"), route.getString("uri"))
+            })
+        }
+    }
 
-    fun open(context: Context, id: String): Boolean {
-        val destination = destinations[id] ?: throw IllegalArgumentException("未知的官方入口")
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(destination.uri))
-            .setPackage(destination.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (context.packageManager.resolveActivity(intent, 0) == null) return false
-        context.startActivity(intent)
-        return true
+    fun available(context: Context): List<String> = destinations(context).filter { destination ->
+        destination.apps.any { route ->
+            try {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(route.packageName, 0)
+                true
+            } catch (_: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
+    }.map { it.id }
+
+    fun open(context: Context, id: String): Map<String, String> {
+        val destination = destinations(context).firstOrNull { it.id == id }
+            ?: throw IllegalArgumentException("未知的官方入口")
+        var reason = "route_unavailable"
+        for (route in destination.apps) {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(route.uri))
+                .setPackage(route.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                context.startActivity(intent)
+                return mapOf("id" to id, "status" to "app")
+            } catch (_: ActivityNotFoundException) {
+                // A package visibility query cannot determine whether a URI may be opened.
+            } catch (_: SecurityException) {
+                reason = "access_denied"
+            }
+        }
+        return mapOf("id" to id, "status" to "unavailable", "reason" to reason)
     }
 }

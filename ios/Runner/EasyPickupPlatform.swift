@@ -5,9 +5,32 @@ import UserNotifications
 import WidgetKit
 
 final class EasyPickupPlatform: NSObject, FlutterPlugin {
+    private struct AppRoute: Decodable {
+        let uri: URL
+    }
+    private struct Destination: Decodable {
+        let id: String
+        let apps: [AppRoute]
+    }
+    private struct Catalog: Decodable {
+        let destinations: [Destination]
+    }
+    private let catalog: Result<[Destination], Error>
+
+    private init(assetPath: String?) {
+        catalog = Result {
+            guard let assetPath else {
+                throw NSError(domain: "EasyPickup", code: 1, userInfo: [NSLocalizedDescriptionKey: "无法读取平台入口"])
+            }
+            return try JSONDecoder().decode(Catalog.self, from: Data(contentsOf: URL(fileURLWithPath: assetPath))).destinations
+        }
+        super.init()
+    }
+
     static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "easy_pickup/platform", binaryMessenger: registrar.messenger())
-        registrar.addMethodCallDelegate(EasyPickupPlatform(), channel: channel)
+        let key = registrar.lookupKey(forAsset: "assets/platforms.json")
+        registrar.addMethodCallDelegate(EasyPickupPlatform(assetPath: Bundle.main.path(forResource: key, ofType: nil)), channel: channel)
     }
 
     func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -26,6 +49,9 @@ final class EasyPickupPlatform: NSObject, FlutterPlugin {
                 result(nil)
             } catch { result(FlutterError(code: "share_ack", message: error.localizedDescription, details: nil)) }
         case "getPermissions":
+            let destinations: [Destination]
+            do { destinations = try catalog.get() }
+            catch { result(FlutterError(code: "destination", message: error.localizedDescription, details: nil)); return }
             UNUserNotificationCenter.current().getNotificationSettings { settings in
                 let allowed = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
                 DispatchQueue.main.async {
@@ -37,7 +63,9 @@ final class EasyPickupPlatform: NSObject, FlutterPlugin {
                         "widgetSupported": SharedParcelStore.groupAvailable,
                         "appGroupAvailable": SharedParcelStore.groupAvailable,
                         "widgetStatus": SharedParcelStore.groupAvailable ? "在主屏幕小组件图库添加易取件" : "组件需要配置 App Groups 的签名版本",
-                        "availableApps": Self.destinations.compactMap { key, value in UIApplication.shared.canOpenURL(value) ? key : nil }
+                        "availableApps": destinations.filter { destination in
+                            destination.apps.contains { UIApplication.shared.canOpenURL($0.uri) }
+                        }.map { $0.id }
                     ])
                 }
             }
@@ -55,11 +83,15 @@ final class EasyPickupPlatform: NSObject, FlutterPlugin {
                 if opened { result(nil) } else { result(FlutterError(code: "settings", message: "无法打开系统设置", details: nil)) }
             }
         case "openOfficial":
-            guard let id = arguments["id"] as? String, let url = Self.destinations[id] else {
-                result(FlutterError(code: "destination", message: "未知的官方入口", details: nil)); return
+            do {
+                guard let id = arguments["id"] as? String,
+                      let destination = try catalog.get().first(where: { $0.id == id }) else {
+                    result(FlutterError(code: "destination", message: "未知的官方入口", details: nil)); return
+                }
+                open(destination, routeIndex: 0, result: result)
+            } catch {
+                result(FlutterError(code: "destination", message: error.localizedDescription, details: nil))
             }
-            guard UIApplication.shared.canOpenURL(url) else { result(false); return }
-            UIApplication.shared.open(url) { result($0) }
         case "pinWidget":
             // iOS does not allow apps to pin a widget. The UI explains the system widget gallery.
             result(false)
@@ -114,12 +146,14 @@ final class EasyPickupPlatform: NSObject, FlutterPlugin {
         }
     }
 
-    private static let destinations: [String: URL] = [
-        "cainiao_code": URL(string: "cainiao://desktop/station_code")!,
-        "taobao_code": URL(string: "taobao://m.taobao.com/tbopen/index.html?h5Url=https%3A%2F%2Fpages-fast.m.taobao.com%2Fwow%2Fz%2Funiapp%2F1011717%2Flast-mile-fe%2Fend-collect-platform%2Fidentity-code%3Fx-ssr%3Dtrue")!,
-        "pinduoduo_code": URL(string: "pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11")!,
-        "pinduoduo_pickup": URL(string: "pinduoduo://com.xunmeng.pinduoduo/mdkd/package")!,
-        "jd_orders": URL(string: "openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D")!,
-        "taobao_orders": URL(string: "taobao://m.taobao.com/tbopen/index.html?h5Url=https%3A%2F%2Fh5.m.taobao.com%2Fawp%2Fbase%2Forder%2Flistul.htm")!
-    ]
+    private func open(_ destination: Destination, routeIndex: Int, result: @escaping FlutterResult) {
+        guard routeIndex < destination.apps.count else {
+            result(["id": destination.id, "status": "unavailable", "reason": "route_unavailable"])
+            return
+        }
+        UIApplication.shared.open(destination.apps[routeIndex].uri, options: [:]) { opened in
+            if opened { result(["id": destination.id, "status": "app"]) }
+            else { self.open(destination, routeIndex: routeIndex + 1, result: result) }
+        }
+    }
 }

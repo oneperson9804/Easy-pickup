@@ -1,7 +1,7 @@
 name: easy_pickup
 description: 易取件：取件整理、日历与随身码夹。
 publish_to: none
-version: 1.0.0+1
+version: 1.1.0+2
 environment:
   sdk: '>=3.10.0 <4.0.0'
 dependencies:
@@ -34,6 +34,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/branding/
+    - assets/platforms.json
 flutter_launcher_icons:
   android: true
   ios: true

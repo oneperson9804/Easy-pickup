@@ -2,6 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../core/models.dart';
 
+enum OfficialLaunchStatus { app, unavailable }
+
+class OfficialLaunchResult {
+  const OfficialLaunchResult(this.status, {this.reason});
+  final OfficialLaunchStatus status;
+  final String? reason;
+  bool get opened => status == OfficialLaunchStatus.app;
+}
+
 class PlatformServices {
   static const channel = MethodChannel('easy_pickup/platform');
   void setRecordsChangedCallback(Future<void> Function()? callback) {
@@ -77,9 +86,22 @@ class PlatformServices {
     if (!kIsWeb) await channel.invokeMethod<void>('openSettings');
   }
 
-  Future<bool> openOfficial(String id) async =>
-      !kIsWeb &&
-      (await channel.invokeMethod<bool>('openOfficial', {'id': id}) ?? false);
+  Future<OfficialLaunchResult> openOfficial(String id) async {
+    if (kIsWeb) {
+      return const OfficialLaunchResult(OfficialLaunchStatus.unavailable);
+    }
+    final result = await channel.invokeMapMethod<String, dynamic>(
+      'openOfficial',
+      {'id': id},
+    );
+    return OfficialLaunchResult(
+      result?['status'] == 'app'
+          ? OfficialLaunchStatus.app
+          : OfficialLaunchStatus.unavailable,
+      reason: result?['reason'] as String?,
+    );
+  }
+
   Future<void> refreshWidgets() async {
     if (!kIsWeb) await channel.invokeMethod<void>('refreshWidgets');
   }

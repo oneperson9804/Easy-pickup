@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import '../core/app_controller.dart';
 import '../core/models.dart';
 import 'actions.dart';
+import 'import_review_page.dart';
+import 'page_capture.dart';
 
 bool get supportsSms =>
     !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -54,6 +56,14 @@ Future<void> showAddMenu(BuildContext context, AppController app) async {
               ),
               if (supportsSms)
                 ListTile(
+                  key: const ValueKey('add-page-capture'),
+                  leading: const Icon(Icons.screen_search_desktop_rounded),
+                  title: const Text('识别平台页面'),
+                  subtitle: const Text('在选定平台中读取当前可见取件信息'),
+                  onTap: () => Navigator.pop(context, 'page'),
+                ),
+              if (supportsSms)
+                ListTile(
                   key: const ValueKey('add-sms'),
                   leading: const Icon(Icons.sms_outlined),
                   title: const Text('导入短信'),
@@ -85,6 +95,11 @@ Future<void> showAddMenu(BuildContext context, AppController app) async {
     case 'sms':
       await importSms(context, app);
       break;
+    case 'page':
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const PageCapturePage()));
+      break;
   }
 }
 
@@ -107,11 +122,17 @@ Future<void> importTextDialog(
   String initial = '',
   String source = 'paste',
 }) async {
-  final text = TextEditingController(text: initial);
+  final draft = app.sharedText ?? '';
+  final starting = initial.isEmpty
+      ? draft
+      : draft.isEmpty || draft == initial
+      ? initial
+      : '$draft\n\n$initial';
+  final text = TextEditingController(text: starting);
   final value = await showSettledDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(source == 'ocr' ? '检查识别文字' : '粘贴取件信息'),
+      title: Text(source == 'ocr' || source == 'share' ? '检查识别文字' : '粘贴取件信息'),
       content: SizedBox(
         width: 460,
         child: SingleChildScrollView(
@@ -119,7 +140,7 @@ Future<void> importTextDialog(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('可放入多条取件通知。请保留取件码与站点；识别后可继续编辑记录。'),
+              const Text('可放入多条取件通知。请保留站点与取件码，下一步逐条核对。'),
               const SizedBox(height: 16),
               TextField(
                 key: const ValueKey('import-text'),
@@ -156,7 +177,7 @@ Future<void> importTextDialog(
               Navigator.pop(context, text.text.trim());
             }
           },
-          child: const Text('识别并添加'),
+          child: const Text('识别并核对'),
         ),
       ],
     ),
@@ -164,20 +185,13 @@ Future<void> importTextDialog(
   text.dispose();
   if (value == null || !context.mounted) return;
   await runTask(context, () async {
-    final result = await app.importText(value, source: source);
-    if (source == 'share' &&
-        result.unrecognized == 0 &&
-        (result.added > 0 || result.duplicates > 0)) {
-      await app.clearSharedText();
-    }
-    if (context.mounted) {
-      notice(
-        context,
-        result.added == 0 && result.duplicates == 0
-            ? '没有识别到取件信息，可选择手动填写。'
-            : '已保存 ${result.added} 件 · 重复 ${result.duplicates} 条${result.unrecognized > 0 ? ' · ${result.unrecognized} 条未识别${source == 'share' ? '，分享草稿已保留' : '，可再次导入或手动填写'}' : ''}',
-      );
-    }
+    await app.saveImportDraft(value);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportReviewPage(app: app, text: value, source: source),
+      ),
+    );
   });
 }
 
