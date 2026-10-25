@@ -20,7 +20,7 @@ class AppController extends ChangeNotifier {
     : _repository = repository;
   static const repositoryUrl = 'https://github.com/oneperson9804/Easy-pickup';
   static const appVersion = '1.1.0';
-  static const feedbackEmail = 'wmiles98@163.com';
+  static const feedbackEmail = 'oneperson9823@gmail.com';
   final ParcelRepository _repository;
   final PlatformServices platform;
   AppSnapshot _snapshot = const AppSnapshot();

@@ -77,7 +77,7 @@ test -d build/ios/iphonesimulator/Runner.app/PlugIns/ShareExtension.appex
 
 检查更新由用户触发，访问 GitHub 公开版本信息。平台入口打开对应官方服务，查看包裹详情后可通过截图、文字或系统分享带回核对。Android 页面识别只在你按读取或截图按钮时获取选定平台当前可见内容；滚动或展开后可继续读取。分享内容经用户确认后交给所选接收应用。完整说明可在 App 内离线阅读。
 
-反馈邮箱：[wmiles98@163.com](mailto:wmiles98@163.com)。App 菜单“反馈意见”支持撰写邮件和复制邮箱。
+反馈邮箱：[oneperson9823@gmail.com](mailto:oneperson9823@gmail.com)。App 菜单“反馈意见”支持撰写邮件和复制邮箱。
 
 ## 验证与版本
 

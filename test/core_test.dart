@@ -200,7 +200,7 @@ void main() {
   test('反馈邮箱和中文草稿URI保持内容', () {
     const message = '型号：手机 A\n系统：Android 16\n取件码 A1+2 & B';
     final uri = AppController.feedbackUri(message);
-    expect(uri.path, 'wmiles98@163.com');
+    expect(uri.path, 'oneperson9823@gmail.com');
     expect(uri.queryParameters['body'], message);
     expect(uri.queryParameters['subject'], contains(AppController.appVersion));
   });
